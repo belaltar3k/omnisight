@@ -1,0 +1,33 @@
+# ============================================================
+#  Weapon Detection Pipeline — Full Requirements (Phase 1-3)
+#  Install: pip install -r requirements.txt
+# ============================================================
+
+# ── Phase 1: Data ingestion & conversion ────────────────────
+boto3>=1.34.0
+botocore>=1.34.0
+Pillow>=10.0.0
+opencv-python-headless>=4.8.0
+tqdm>=4.66.0
+numpy>=1.24.0
+scipy>=1.11.0
+
+# ── Phase 3: Training ────────────────────────────────────────
+ultralytics>=8.3.0
+
+# ── Phase 3: SAHI tiled inference ────────────────────────────
+sahi>=0.11.15
+pycocotools>=2.0.7
+
+# ── Phase 3: CCTV augmentations ──────────────────────────────
+albumentations>=1.3.1
+
+# ── Utilities ────────────────────────────────────────────────
+requests>=2.31.0
+PyYAML>=6.0
+
+# ──────────────────────────────────────────────────────────────
+# CUDA PyTorch — install separately:
+#   pip install torch torchvision --index-url https://download.pytorch.org/whl/cu121
+# Replace cu121 with your CUDA version (nvcc --version)
+# ──────────────────────────────────────────────────────────────
