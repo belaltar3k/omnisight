@@ -1,0 +1,11 @@
+opencv-python
+numpy
+ultralytics
+insightface
+torch
+torchvision
+faiss-cpu
+torchreid==0.2.5
+Pillow
+gdown
+tensorboard
