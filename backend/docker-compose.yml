@@ -431,7 +431,7 @@ services:
       FRAME_WIDTH: 640
       FRAME_HEIGHT: 640
       IPC_PREFIX: "cam_"
-      SNAPSHOT_INTERVAL: ${SNAPSHOT_INTERVAL:-60}
+      SNAPSHOT_INTERVAL: ${SNAPSHOT_INTERVAL:-30}
       OUTPUT_DIR: /snapshots
     volumes:
       - snapshot_data:/snapshots
