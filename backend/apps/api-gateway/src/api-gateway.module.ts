@@ -10,6 +10,7 @@ import { CameraProxyModule } from './modules/camera-proxy/camera-proxy.module';
 import { UserProxyModule } from './modules/user-proxy/user-proxy.module';
 import { IncidentProxyModule } from './modules/incident-proxy/incident-proxy.module';
 import { AlertProxyModule } from './modules/alert-proxy/alert-proxy.module';
+import { AnalyticsProxyModule } from './modules/analytics-proxy/analytics-proxy.module';
 import { JwtStrategy } from '../../../libs/common/src/strategies/jwt.strategy';
 
 @Module({
@@ -28,6 +29,7 @@ import { JwtStrategy } from '../../../libs/common/src/strategies/jwt.strategy';
     UserProxyModule,
     IncidentProxyModule,
     AlertProxyModule,
+    AnalyticsProxyModule,
   ],
   controllers: [ApiGatewayController],
   providers: [ApiGatewayService, JwtStrategy],

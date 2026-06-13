@@ -225,6 +225,7 @@ export class IncidentsService implements OnModuleInit {
       // Emit immediately on detection — don't wait for classification
       this.kafkaClient.emit('sentinel.incident.new', {
         incidentId: saved.id,
+        cameraId: saved.cameraId,
         cameraCode: saved.cameraCode,
         zoneId: saved.zoneId,
         crimeType: detection.crimeType,
