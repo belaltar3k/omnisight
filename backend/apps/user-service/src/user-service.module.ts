@@ -7,6 +7,7 @@ import { PassportModule } from '@nestjs/passport';
 import { ProfilesModule } from './modules/profiles/profiles.module';
 import { ZoneAssignmentsModule } from './modules/zone-assignments/zone-assignments.module';
 import { JwtStrategy } from '../../../libs/common/src/strategies/jwt.strategy';
+import { UserServiceController } from './user-service.controller';
 
 @Module({
   imports: [
@@ -41,7 +42,7 @@ import { JwtStrategy } from '../../../libs/common/src/strategies/jwt.strategy';
     ProfilesModule,
     ZoneAssignmentsModule,
   ],
-  // ✅ JwtStrategy must be a provider so Passport registers the 'jwt' strategy
+  controllers: [UserServiceController],
   providers: [JwtStrategy],
 })
 export class UserServiceModule {}
