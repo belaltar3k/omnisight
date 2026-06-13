@@ -378,7 +378,8 @@ services:
     container_name: sentinel-video-ingestion
     restart: always
     environment:
-      # Must be a JSON array or comma-separated string; [] = no cameras
+      # JSON array of RTSP URLs. [] = no cameras (service starts idle).
+      # IP Webcam (Android): rtsp://<phone-ip>:8080/h264_ulaw.sdp
       RTSP_URLS: ${RTSP_URLS:-[]}
       REDIS_HOST: edge-cache
       REDIS_PORT: 6379
