@@ -378,7 +378,8 @@ services:
     container_name: sentinel-video-ingestion
     restart: always
     environment:
-      RTSP_URLS: ${RTSP_URLS:-}
+      # Must be a JSON array or comma-separated string; [] = no cameras
+      RTSP_URLS: ${RTSP_URLS:-[]}
       REDIS_HOST: edge-cache
       REDIS_PORT: 6379
       PG_HOST: edge-database
