@@ -1,0 +1,279 @@
+# CELL 1: Install dependencies and clone repositories
+!pip install -q tensorflow-hub transformers torchaudio librosa soundfile
+!git clone https://github.com/JHU-LCAP/FlexSED.git
+!pip install -q -r FlexSED/requirements.txt
+
+# CELL 2: Imports and Environment Setup
+%cd /content/FlexSED
+
+import os
+import csv
+import torch
+import numpy as np
+import librosa
+import soundfile as sf
+import tensorflow as tf
+import tensorflow_hub as hub
+import torchaudio
+import torch.nn.functional as F
+import scipy.io.wavfile as wavfile
+import scipy.signal
+from PIL import Image
+from transformers import pipeline, AutoImageProcessor
+from google.colab import files
+import IPython.display as ipd
+
+# Import FlexSED from the cloned repo
+from api import FlexSED
+
+# Memory optimizations for Colab
+os.environ["PYTORCH_CUDA_ALLOC_CONF"] = "expandable_segments:True"
+print("✅ Libraries imported successfully!")
+
+
+# CELL 3: Load Models (YAMNet, Swin-Gunshot, and FlexSED)
+
+print("1. Loading YAMNet (Coarse Filter)...")
+yamnet_model = hub.load('https://tfhub.dev/google/yamnet/1')
+
+def class_names_from_csv(class_map_csv_text):
+    class_names =[]
+    with tf.io.gfile.GFile(class_map_csv_text) as csvfile:
+        reader = csv.DictReader(csvfile)
+        for row in reader:
+            class_names.append(row['display_name'])
+    return class_names
+
+yamnet_classes = class_names_from_csv(yamnet_model.class_map_path().numpy())
+
+print("\n2. Loading Swin Gunshot Model (Fine Verification)...")
+image_processor = AutoImageProcessor.from_pretrained("ranvir-not-found/swin-wda_gunshot-detection")
+gunshot_classifier = pipeline(
+    "image-classification",
+    model="ranvir-not-found/swin-wda_gunshot-detection",
+    image_processor=image_processor
+)
+
+print("\n3. Loading FlexSED (Semantic Reasoning)...")
+device = "cuda" if torch.cuda.is_available() else "cpu"
+flexsed_model = FlexSED(device=device)
+
+print("\n✅ All models loaded and ready!")
+
+
+
+
+# CELL 4: Audio & Spectrogram Preprocessing Utilities
+
+def ensure_sample_rate(original_sample_rate, waveform, desired_sample_rate=16000):
+    """Resamples audio for YAMNet."""
+    if original_sample_rate != desired_sample_rate:
+        desired_length = int(round(float(len(waveform)) / original_sample_rate * desired_sample_rate))
+        waveform = scipy.signal.resample(waveform, desired_length)
+    return desired_sample_rate, waveform
+
+def preprocess_wav_to_spectrogram(file_path):
+    """Generates a 224x224 log-mel spectrogram for the Swin Vision model."""
+    waveform, orig_sample_rate = torchaudio.load(file_path)
+
+    # Resample to 8kHz (Model requirement)
+    if orig_sample_rate != 8000:
+        resampler = torchaudio.transforms.Resample(orig_sample_rate, 8000)
+        waveform = resampler(waveform)
+
+    # Pad or truncate to exactly 4 seconds
+    TARGET_LENGTH = 4
+    target_samples = TARGET_LENGTH * 8000
+    if waveform.shape[1] > target_samples:
+        waveform = waveform[:, :target_samples]
+    else:
+        padding = target_samples - waveform.shape[1]
+        waveform = F.pad(waveform, (0, padding))
+
+    # Create log-mel spectrogram
+    mel_spec = torchaudio.transforms.MelSpectrogram(
+        sample_rate=8000, n_fft=512, hop_length=160, n_mels=64, power=1.0
+    )(waveform)
+
+    log_spec = torchaudio.transforms.AmplitudeToDB()(mel_spec)
+    log_spec = (log_spec + 80) / 80 # normalize 0-1
+    log_spec = log_spec.repeat(3, 1, 1) # 3 channels for Swin
+
+    # Resize to 224x224
+    log_spec = F.interpolate(log_spec.unsqueeze(0), size=(224, 224), mode='bilinear', align_corners=False).squeeze(0)
+
+    # Convert to PIL Image
+    log_spec_np = log_spec.permute(1, 2, 0).numpy()
+    log_spec_np = (log_spec_np * 255).astype(np.uint8)
+    return Image.fromarray(log_spec_np, mode='RGB')
+
+
+
+# CELL 5: The Multi-Stage Architecture Execution
+import time
+import os
+import subprocess
+import torch
+import librosa
+import numpy as np
+
+# --- Helper Function for VRAM Measurement ---
+def check_vram(stage_label):
+    if torch.cuda.is_available():
+        torch.cuda.synchronize() # Wait for GPU to finish processing
+        pt_alloc = torch.cuda.memory_allocated() / (1024**2)
+        pt_peak = torch.cuda.max_memory_allocated() / (1024**2)
+
+        try:
+            # Get actual total GPU memory used from nvidia-smi
+            smi_out = subprocess.check_output(["nvidia-smi", "--query-gpu=memory.used", "--format=csv,nounits,noheader"],
+                encoding='utf-8'
+            )
+            total_vram = float(smi_out.strip())
+            print(f"   💾 VRAM ({stage_label}) -> Total System GPU: {total_vram:.0f} MB | PyTorch Peak: {pt_peak:.0f} MB")
+        except:
+            print(f"   💾 VRAM ({stage_label}) -> PyTorch Peak: {pt_peak:.0f} MB")
+
+        # Reset PyTorch peak tracker for the next stage
+        torch.cuda.reset_peak_memory_stats()
+    else:
+        print("   🖥️ Running on CPU (No VRAM)")
+
+# ==========================================================
+
+audio_path = "/content/test.mp3"
+
+print(f"\n{'='*50}\n🔎 ANALYZING: {audio_path}\n{'='*50}")
+
+# --- Configurations ---
+YAMNET_THRESH = 0.00
+GUNSHOT_THRESH = 0.7
+FLEXSED_THRESH = 0.10
+crime_keywords =["gunshot", "gunfire", "explosion", "screaming", "shout", "breaking glass", "speech", "inside"]
+
+# Reset VRAM stats before we begin
+if torch.cuda.is_available():
+    torch.cuda.empty_cache()
+    torch.cuda.reset_peak_memory_stats()
+
+total_start_time = time.time()
+
+# ==========================================================
+# STAGE 1: YAMNet -> (Filter Candidates)
+# ==========================================================
+print("\n[STAGE 1] Running YAMNet (Coarse filtering)...")
+stage1_start = time.time()
+
+# ---> FIX: Use Librosa for robust loading <---
+# librosa.load automatically handles malformed headers, stereo->mono, resamples to 16kHz, and normalizes to [-1.0, 1.0]
+wav_data, sample_rate = librosa.load(audio_path, sr=16000, mono=True)
+waveform = wav_data.astype(np.float32)
+
+scores, embeddings, spectrogram = yamnet_model(waveform)
+mean_scores = np.mean(scores.numpy(), axis=0)
+
+yamnet_candidates =[]
+needs_gunshot_verify = False
+
+for i, score in enumerate(mean_scores):
+    name = yamnet_classes[i]
+    if any(kw in name.lower() for kw in crime_keywords) and score > YAMNET_THRESH:
+        yamnet_candidates.append((name, score))
+        if "gun" in name.lower() or "explosion" in name.lower():
+            needs_gunshot_verify = True
+
+stage1_time = time.time() - stage1_start
+print(f"   ⏱️ Stage 1 Time: {stage1_time:.3f} seconds")
+check_vram("After YAMNet")
+
+if not yamnet_candidates:
+    print("   ✅ No suspicious sounds detected. Pipeline halted early.")
+else:
+    for name, score in yamnet_candidates[:5]:
+        print(f"   ⚠️ Detected: {name:<20} | Confidence: {score:.4f}")
+    if len(yamnet_candidates) > 5:
+        print(f"   ... and {len(yamnet_candidates)-5} more.")
+
+    # ==========================================================
+    # STAGE 2: Gunshot Model -> (Verify)
+    # ==========================================================
+    if needs_gunshot_verify:
+        print("\n[STAGE 2] Running specialized Gunshot model (Verification)...")
+        stage2_start = time.time()
+
+        spec_img = preprocess_wav_to_spectrogram(audio_path)
+        gunshot_results = gunshot_classifier(spec_img)
+
+        gunshot_verified = False
+        for res in gunshot_results:
+            print(f"   - {res['label']:<15} : {res['score']:.4f}")
+            if res['label'].lower() == 'gunshot' and res['score'] > GUNSHOT_THRESH:
+                gunshot_verified = True
+
+        stage2_time = time.time() - stage2_start
+        print(f"   ⏱️ Stage 2 Time: {stage2_time:.3f} seconds")
+        check_vram("After Gunshot Model")
+
+        if gunshot_verified:
+            print("   🚨 VERIFIED: Strong gunshot/explosion signature confirmed.")
+        else:
+            print("   ❌ FALSE ALARM: Specialized model rejected the gunshot hypothesis.")
+    else:
+        print("\n[STAGE 2] Skipped: No ballistic signatures triggered in Step 1.")
+
+    # ==========================================================
+    # STAGE 3: FlexSED -> (Final Semantic Reasoning)
+    # ==========================================================
+    print("\n[STAGE 3] Running FlexSED (Context & Semantic Reasoning)...")
+    stage3_start = time.time()
+
+    surveillance_events =[
+        "loud gunshot", "sound of a pistol or handgun firing",
+        "automatic weapon or heavy machine gun firing continuously",
+        "loud explosion or bomb blast",
+        "sounds of a violent physical fight or brawl",
+        "person screaming in terror, fear, or distress",
+        "glass window breaking, shattering, or smashing violently",
+        "police car siren sounding or wailing"
+    ]
+
+    audio, sr = librosa.load(audio_path, sr=16000, mono=True)
+    audio = librosa.util.normalize(audio)
+    temp_wav = "temp_flexsed.wav"
+    sf.write(temp_wav, audio, 16000)
+
+    all_preds =[]
+    BATCH_SIZE = 5
+    with torch.no_grad():
+        for i in range(0, len(surveillance_events), BATCH_SIZE):
+            chunk = surveillance_events[i:i+BATCH_SIZE]
+            preds_chunk = flexsed_model.run_inference(temp_wav, chunk, norm_audio=True)
+            all_preds.append(preds_chunk)
+
+    preds = torch.cat(all_preds, dim=0)
+    scores_max = preds[:,0].max(dim=1).values.numpy()
+
+    results =[(evt, sc) for evt, sc in zip(surveillance_events, scores_max) if sc > FLEXSED_THRESH]
+    results.sort(key=lambda x: x[1], reverse=True)
+
+    stage3_time = time.time() - stage3_start
+    print(f"   ⏱️ Stage 3 Time: {stage3_time:.3f} seconds")
+    check_vram("After FlexSED")
+
+    print("\nFINAL SEMANTIC CONCLUSIONS:")
+    if results:
+        for event, score in results:
+            print(f"[ALERT] {event} -> Confidence: {score:.4f}")
+    else:
+        print("   No high-confidence semantic matches found.")
+
+    if os.path.exists(temp_wav): os.remove(temp_wav)
+
+total_end_time = time.time()
+total_time = total_end_time - total_start_time
+
+print(f"\n{'='*50}")
+print(f"⏱️ TOTAL PIPELINE EXECUTION TIME: {total_time:.3f} seconds")
+print(f"{'='*50}")
+
+ipd.display(ipd.Audio(audio_path))

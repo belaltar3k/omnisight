@@ -1,0 +1,6 @@
+.venv/
+FlexSED/
+__pycache__/
+*.pyc
+*.pyo
+temp_flexsed.wav
