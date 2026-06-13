@@ -377,6 +377,7 @@ services:
       context: apps/video-ingestion
     container_name: sentinel-video-ingestion
     restart: always
+    ipc: shareable
     environment:
       # JSON array of RTSP URLs. [] = no cameras (service starts idle).
       # IP Webcam (Android): rtsp://<phone-ip>:8080/h264_ulaw.sdp
@@ -420,9 +421,9 @@ services:
       context: apps/snapshot-service
     container_name: sentinel-snapshot-service
     restart: always
-    # Shares the host IPC namespace so this container can attach to shared
-    # memory blocks created by video-ingestion (cam_<camera_id> segments).
-    ipc: host
+    # Joins video-ingestion's IPC namespace so it can attach to the POSIX
+    # shared memory blocks (cam_<id> in /dev/shm) that video-ingestion creates.
+    ipc: service:video-ingestion
     environment:
       # Comma-separated list of camera IDs that video-ingestion is streaming.
       # Must match the IDs auto-assigned by video-ingestion (cam-001, cam-002, …)

@@ -76,7 +76,7 @@ def snapshot_camera(camera_id: str) -> bool:
     try:
         shm = shared_memory.SharedMemory(create=False, name=shm_name)
     except FileNotFoundError:
-        logger.warning(f"Shared memory '{shm_name}' not found — is video-ingestion running with {camera_id}?")
+        logger.debug(f"Shared memory '{shm_name}' not ready yet (video-ingestion still starting?)")
         return False
 
     try:
@@ -100,12 +100,32 @@ def snapshot_camera(camera_id: str) -> bool:
     return ok
 
 
+def wait_for_shm(camera_id: str, timeout: int = 30) -> bool:
+    """Poll until video-ingestion has created the shared memory block."""
+    shm_name = f"{IPC_PREFIX}{camera_id}"
+    deadline = time.monotonic() + timeout
+    while time.monotonic() < deadline:
+        try:
+            shm = shared_memory.SharedMemory(create=False, name=shm_name)
+            shm.close()
+            logger.info(f"Shared memory '{shm_name}' is ready")
+            return True
+        except FileNotFoundError:
+            time.sleep(1)
+    logger.warning(f"Shared memory '{shm_name}' not available after {timeout}s — will keep retrying each interval")
+    return False
+
+
 def main():
     logger.info(
         f"Snapshot service started — cameras={CAMERA_IDS}, "
         f"interval={SNAPSHOT_INTERVAL}s, output={OUTPUT_DIR}, "
         f"frame={FRAME_WIDTH}x{FRAME_HEIGHT}"
     )
+
+    # Wait briefly for video-ingestion to create shm before first snapshot
+    for cam_id in CAMERA_IDS:
+        wait_for_shm(cam_id)
 
     while running:
         for cam_id in CAMERA_IDS:
