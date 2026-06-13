@@ -18,9 +18,9 @@ warn() { echo -e "  ${YELLOW}!${NC} $1"; }
 # ── helper: hit URL, any HTTP response = up, timeout/refused = down ──────────
 http_check() {
   local label="$1" url="$2" expected_prefix="${3:-}"
-  local code
-  code=$(curl -s -o /tmp/hc_body -w "%{http_code}" --max-time "$TIMEOUT" "$url" 2>/dev/null || echo "000")
-  if [[ "$code" == "000" ]]; then
+  rm -f /tmp/hc_body
+  code=$(curl -s -o /tmp/hc_body -w "%{http_code}" --max-time "$TIMEOUT" "$url" 2>/dev/null || true)
+  if [[ -z "$code" || "$code" == "000" ]]; then
     fail "$label  →  no response (connection refused or timeout)"
     return
   fi
