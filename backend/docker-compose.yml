@@ -1,4 +1,7 @@
 services:
+
+  # ─────────────────────────── Infrastructure ───────────────────────────
+
   postgres:
     image: postgres:16
     container_name: sentinel-auth-postgres
@@ -11,13 +14,29 @@ services:
       - "5432:5432"
     volumes:
       - auth_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U sentinel -d sentinel_auth"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
 
-  redis:
-    image: redis:7
-    container_name: sentinel-auth-redis
+  user-postgres:
+    image: postgres:16
+    container_name: sentinel-user-postgres
     restart: always
+    environment:
+      POSTGRES_USER: sentinel
+      POSTGRES_PASSWORD: sentinel123
+      POSTGRES_DB: sentinel_user
     ports:
-      - "6379:6379"
+      - "5435:5432"
+    volumes:
+      - user_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U sentinel -d sentinel_user"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
 
   camera-postgres:
     image: postgres:16
@@ -31,6 +50,11 @@ services:
       - "5433:5432"
     volumes:
       - camera_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U sentinel -d sentinel_camera"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
 
   incident-postgres:
     image: postgres:16
@@ -43,19 +67,13 @@ services:
     ports:
       - "5434:5432"
     volumes:
-    - incident_postgres_data:/var/lib/postgresql/data
-  user-postgres:
-    image: postgres:16
-    container_name: sentinel-user-postgres
-    restart: always
-    environment:
-      POSTGRES_USER: sentinel
-      POSTGRES_PASSWORD: sentinel123
-      POSTGRES_DB: sentinel_user
-    ports:
-      - "5435:5432"
-    volumes:
-    - user_postgres_data:/var/lib/postgresql/data
+      - incident_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U sentinel -d sentinel_incident"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
   alert-postgres:
     image: postgres:16
     container_name: sentinel-alert-postgres
@@ -68,10 +86,46 @@ services:
       - "5436:5432"
     volumes:
       - alert_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U sentinel -d sentinel_alert"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  timescaledb:
+    image: timescale/timescaledb:latest-pg15
+    container_name: omnisight-timescaledb
+    restart: always
+    environment:
+      POSTGRES_USER: omnisight_user
+      POSTGRES_PASSWORD: omnisight_password
+      POSTGRES_DB: omnisight_analytics
+    ports:
+      - "5437:5432"
+    volumes:
+      - timescaledb_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U omnisight_user -d omnisight_analytics"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7
+    container_name: sentinel-redis
+    restart: always
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
   zookeeper:
     image: confluentinc/cp-zookeeper:7.3.2
     container_name: sentinel-zookeeper
-    platform: linux/amd64
+    restart: always
     ports:
       - "2181:2181"
     environment:
@@ -81,7 +135,7 @@ services:
   kafka:
     image: confluentinc/cp-kafka:7.3.2
     container_name: sentinel-kafka
-    platform: linux/amd64
+    restart: always
     depends_on:
       - zookeeper
     ports:
@@ -89,26 +143,214 @@ services:
     environment:
       KAFKA_BROKER_ID: 1
       KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
-      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://localhost:9092,PLAINTEXT_INTERNAL://kafka:29092
-      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_INTERNAL:PLAINTEXT
-      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT_INTERNAL
+      # PLAINTEXT_HOST is for host-machine clients (port 9092)
+      # PLAINTEXT is for container-to-container communication (port 29092)
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT_HOST://localhost:9092,PLAINTEXT://kafka:29092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT_HOST:PLAINTEXT,PLAINTEXT:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
       KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
+    healthcheck:
+      test: ["CMD-SHELL", "kafka-topics --bootstrap-server kafka:29092 --list"]
+      interval: 10s
+      timeout: 10s
+      retries: 10
+      start_period: 30s
+
   rabbitmq:
     image: rabbitmq:3-management
     container_name: sentinel-rabbitmq
+    restart: always
     ports:
       - "5672:5672"
-      - "15672:15672"   # management UI at http://localhost:15672
+      - "15672:15672"
     environment:
       RABBITMQ_DEFAULT_USER: sentinel
       RABBITMQ_DEFAULT_PASS: sentinel123
+
+  # ─────────────────────────── NestJS Services ───────────────────────────
+
+  auth-service:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        SERVICE_NAME: auth-service
+    container_name: sentinel-auth-service
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    ports:
+      - "3001:3001"
+    environment:
+      AUTH_PORT: 3001
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_USERNAME: sentinel
+      DB_PASSWORD: sentinel123
+      DB_NAME: sentinel_auth
+      JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET}
+      JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET}
+
+  user-service:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        SERVICE_NAME: user-service
+    container_name: sentinel-user-service
+    restart: unless-stopped
+    depends_on:
+      user-postgres:
+        condition: service_healthy
+    ports:
+      - "3004:3004"
+    environment:
+      USER_PORT: 3004
+      USER_DB_HOST: user-postgres
+      USER_DB_PORT: 5432
+      USER_DB_USERNAME: sentinel
+      USER_DB_PASSWORD: sentinel123
+      USER_DB_NAME: sentinel_user
+      JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET}
+      INTERNAL_SECRET: ${INTERNAL_SECRET}
+      AUTH_SERVICE_URL: http://auth-service:3001
+      CAMERA_SERVICE_URL: http://camera-service:3002
+
+  camera-service:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        SERVICE_NAME: camera-service
+    container_name: sentinel-camera-service
+    restart: unless-stopped
+    depends_on:
+      camera-postgres:
+        condition: service_healthy
+    ports:
+      - "3002:3002"
+    environment:
+      CAMERA_PORT: 3002
+      CAMERA_DB_HOST: camera-postgres
+      CAMERA_DB_PORT: 5432
+      CAMERA_DB_USERNAME: sentinel
+      CAMERA_DB_PASSWORD: sentinel123
+      CAMERA_DB_NAME: sentinel_camera
+      JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET}
+
+  incident-service:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        SERVICE_NAME: incident-service
+    container_name: sentinel-incident-service
+    restart: unless-stopped
+    depends_on:
+      incident-postgres:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+    ports:
+      - "3003:3003"
+    environment:
+      INCIDENT_PORT: 3003
+      INCIDENT_DB_HOST: incident-postgres
+      INCIDENT_DB_PORT: 5432
+      INCIDENT_DB_USERNAME: sentinel
+      INCIDENT_DB_PASSWORD: sentinel123
+      INCIDENT_DB_NAME: sentinel_incident
+      KAFKA_BROKER: kafka:29092
+      JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET}
+      CAMERA_SERVICE_URL: http://camera-service:3002
+      EDGE_SYNC_SECRET: ${EDGE_SYNC_SECRET}
+
+  alert-service:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        SERVICE_NAME: alert-service
+    container_name: sentinel-alert-service
+    restart: unless-stopped
+    depends_on:
+      alert-postgres:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+    ports:
+      - "3005:3005"
+    environment:
+      ALERT_PORT: 3005
+      ALERT_DB_HOST: alert-postgres
+      ALERT_DB_PORT: 5432
+      ALERT_DB_USERNAME: sentinel
+      ALERT_DB_PASSWORD: sentinel123
+      ALERT_DB_NAME: sentinel_alert
+      KAFKA_BROKER: kafka:29092
+      JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET}
+      USER_SERVICE_URL: http://user-service:3004
+
+  api-gateway:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        SERVICE_NAME: api-gateway
+    container_name: sentinel-api-gateway
+    restart: unless-stopped
+    depends_on:
+      - auth-service
+      - user-service
+      - camera-service
+      - incident-service
+      - alert-service
+      - analytics-service
+    ports:
+      - "3000:3000"
+    environment:
+      GATEWAY_PORT: 3000
+      AUTH_SERVICE_URL: http://auth-service:3001
+      USER_SERVICE_URL: http://user-service:3004
+      CAMERA_SERVICE_URL: http://camera-service:3002
+      INCIDENT_SERVICE_URL: http://incident-service:3003
+      ALERT_SERVICE_URL: http://alert-service:3005
+      ANALYTICS_SERVICE_URL: http://analytics-service:3006
+      JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET}
+      INTERNAL_SECRET: ${INTERNAL_SECRET}
+
+  # ─────────────────────────── Python Service ───────────────────────────
+
+  analytics-service:
+    build:
+      context: ./apps/analytics-service
+      dockerfile: Dockerfile
+    container_name: omnisight-analytics-service
+    restart: unless-stopped
+    depends_on:
+      timescaledb:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+    ports:
+      - "3006:3006"
+    environment:
+      DATABASE_URL: postgresql://omnisight_user:omnisight_password@timescaledb:5432/omnisight_analytics
+      REDIS_URL: redis://redis:6379
+      KAFKA_BOOTSTRAP_SERVERS: kafka:29092
+      KAFKA_INCIDENT_TOPIC: incidents
+
 volumes:
   auth_postgres_data:
+  user_postgres_data:
   camera_postgres_data:
   incident_postgres_data:
-  user_postgres_data:
   alert_postgres_data:
+  timescaledb_data:
   kafka_data:
   zookeeper_data:
   rabbitmq_data:
