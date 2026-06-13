@@ -344,6 +344,75 @@ services:
       KAFKA_BOOTSTRAP_SERVERS: kafka:29092
       KAFKA_INCIDENT_TOPIC: incidents
 
+  # ─────────────────────────── Edge Services ───────────────────────────
+
+  edge-database:
+    build:
+      context: apps/edge-database
+    container_name: sentinel-edge-database
+    restart: always
+    environment:
+      POSTGRES_DB: sentinel_edge
+      POSTGRES_USER: sentinel_edge_admin
+      POSTGRES_PASSWORD: ${EDGE_DB_PASSWORD}
+    ports:
+      # Mapped to 5438 on host to avoid conflict with sentinel core DBs (5432-5437)
+      - "5438:5432"
+    volumes:
+      - edge_postgres_data:/var/lib/postgresql/data
+
+  edge-cache:
+    image: redis:7
+    container_name: sentinel-edge-cache
+    restart: always
+    command: ["redis-server", "/usr/local/etc/redis/redis.conf"]
+    ports:
+      # Mapped to 6380 on host to avoid conflict with core redis (6379)
+      - "6380:6379"
+    volumes:
+      - ./apps/edge-cache/config/redis.conf:/usr/local/etc/redis/redis.conf:ro
+
+  video-ingestion:
+    build:
+      context: apps/video-ingestion
+    container_name: sentinel-video-ingestion
+    restart: always
+    environment:
+      RTSP_URLS: ${RTSP_URLS:-}
+      REDIS_HOST: edge-cache
+      REDIS_PORT: 6379
+      PG_HOST: edge-database
+      POSTGRES_DB: sentinel_edge
+      POSTGRES_USER: sentinel_edge_admin
+      POSTGRES_PASSWORD: ${EDGE_DB_PASSWORD}
+    ports:
+      - "8000:8000"
+    depends_on:
+      - edge-database
+      - edge-cache
+
+  monitoring-agent:
+    build:
+      context: apps/monitoring-agent
+    container_name: sentinel-monitoring-agent
+    restart: always
+    environment:
+      EDGE_NODE_ID: ${EDGE_NODE_ID:-edge-node-01}
+      REDIS_HOST: edge-cache
+      REDIS_PORT: 6379
+      EXPORTER_PORT: 9101
+    ports:
+      - "9101:9101"
+    depends_on:
+      - edge-cache
+
+  node-exporter:
+    image: prom/node-exporter:latest
+    container_name: sentinel-node-exporter
+    restart: always
+    ports:
+      - "9100:9100"
+
 volumes:
   auth_postgres_data:
   user_postgres_data:
@@ -351,6 +420,7 @@ volumes:
   incident_postgres_data:
   alert_postgres_data:
   timescaledb_data:
+  edge_postgres_data:
   kafka_data:
   zookeeper_data:
   rabbitmq_data:
