@@ -85,6 +85,7 @@ container_check "edge-cache"           sentinel-edge-cache
 container_check "video-ingestion"      sentinel-video-ingestion
 container_check "monitoring-agent"     sentinel-monitoring-agent
 container_check "node-exporter"        sentinel-node-exporter
+container_check "snapshot-service"     sentinel-snapshot-service
 
 # ─── 2. HTTP reachability ─────────────────────────────────────────────────────
 echo ""

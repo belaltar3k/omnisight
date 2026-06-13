@@ -413,6 +413,28 @@ services:
     ports:
       - "9100:9100"
 
+  snapshot-service:
+    build:
+      context: apps/snapshot-service
+    container_name: sentinel-snapshot-service
+    restart: always
+    # Shares the host IPC namespace so this container can attach to shared
+    # memory blocks created by video-ingestion (cam_<camera_id> segments).
+    ipc: host
+    environment:
+      # Comma-separated list of camera IDs that video-ingestion is streaming.
+      # Must match the IDs auto-assigned by video-ingestion (cam-001, cam-002, …)
+      CAMERA_IDS: ${SNAPSHOT_CAMERA_IDS:-cam-001}
+      FRAME_WIDTH: 640
+      FRAME_HEIGHT: 640
+      IPC_PREFIX: "cam_"
+      SNAPSHOT_INTERVAL: ${SNAPSHOT_INTERVAL:-60}
+      OUTPUT_DIR: /snapshots
+    volumes:
+      - snapshot_data:/snapshots
+    depends_on:
+      - video-ingestion
+
 volumes:
   auth_postgres_data:
   user_postgres_data:
@@ -421,6 +443,7 @@ volumes:
   alert_postgres_data:
   timescaledb_data:
   edge_postgres_data:
+  snapshot_data:
   kafka_data:
   zookeeper_data:
   rabbitmq_data:
