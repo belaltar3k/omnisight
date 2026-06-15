@@ -1,0 +1,12 @@
+<div class="bg-panel border border-border-subtle rounded-lg p-4 flex flex-col gap-1">
+  <div class="flex items-center justify-between">
+    <span class="text-xs text-text-secondary">{{ label() }}</span>
+    <span class="text-lg">{{ icon() }}</span>
+  </div>
+  <div class="text-2xl font-bold text-white">{{ value() }}</div>
+  @if (trend()) {
+    <div class="text-[11px]" [class]="trendUp() ? 'text-emerald-400' : 'text-danger'">
+      {{ trendUp() ? '▲' : '▼' }} {{ trend() }}
+    </div>
+  }
+</div>

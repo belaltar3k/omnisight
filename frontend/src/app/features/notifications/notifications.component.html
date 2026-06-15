@@ -1,0 +1,32 @@
+<div class="p-6 space-y-6">
+  <div class="flex items-center justify-between">
+    <div>
+      <h1 class="text-xl font-bold text-white">Notifications</h1>
+      <p class="text-sm text-text-secondary mt-0.5">Your notification history</p>
+    </div>
+    <app-button [btnStyle]="BtnStylesEnum.BTN_BLUE" message="Mark all as read" icon="check-double" type="button"></app-button>
+  </div>
+  <div class="space-y-1">
+    @for (n of notifications$ | async; track n.id) {
+      <div
+        class="flex items-start gap-4 px-4 py-3 rounded-lg hover:bg-panel cursor-pointer transition-colors"
+        [class]="!n.read ? 'bg-panel border border-brand/20' : ''"
+      >
+        <div
+          class="w-2 h-2 rounded-full mt-1.5 shrink-0"
+          [class]="!n.read ? 'bg-brand' : 'bg-transparent'"
+        ></div>
+        <div class="flex-1 min-w-0">
+          <p
+            class="text-sm font-medium"
+            [class]="!n.read ? 'text-white' : 'text-text-secondary'"
+          >
+            {{ n.title }}
+          </p>
+          <p class="text-xs text-text-muted mt-0.5">{{ n.message }}</p>
+        </div>
+        <p class="text-[10px] text-text-muted shrink-0">{{ n.createdAt }}</p>
+      </div>
+    }
+  </div>
+</div>

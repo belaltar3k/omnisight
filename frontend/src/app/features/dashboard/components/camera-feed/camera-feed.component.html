@@ -1,0 +1,62 @@
+<div
+  class="relative w-full h-full rounded-sm overflow-hidden group bg-gradient-to-br"
+  [class.from-slate-900]="imageType() === 'parking' || imageType() === 'server'"
+  [class.via-slate-800]="imageType() === 'parking' || imageType() === 'server'"
+  [class.to-slate-700]="imageType() === 'parking' || imageType() === 'server'"
+  [class.from-slate-800]="imageType() === 'checkin' || imageType() === 'terminal'"
+  [class.via-slate-700]="imageType() === 'checkin' || imageType() === 'terminal'"
+  [class.to-slate-600]="imageType() === 'checkin' || imageType() === 'terminal'"
+  [class.from-slate-700]="imageType() === 'office'"
+  [class.via-slate-600]="imageType() === 'office'"
+  [class.to-slate-500]="imageType() === 'office'"
+>
+  <div class="absolute inset-0" [innerHTML]="sceneSvg"></div>
+  <div class="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-black/20"></div>
+  <div class="absolute top-0 left-0 right-0 flex items-center justify-between px-2 py-1.5 z-10">
+    <div class="flex items-center gap-1.5">
+      @if (live()) {
+        <span class="flex items-center gap-1 bg-black/50 rounded px-1.5 py-0.5">
+          <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+          <span class="text-[9px] font-bold text-emerald-400 tracking-wider">LIVE</span>
+        </span>
+      }
+      <span class="text-[10px] font-medium text-white bg-black/40 rounded px-1.5 py-0.5 backdrop-blur-sm">{{ label() }}</span>
+    </div>
+    <div class="flex items-center gap-1">
+      @if (showLivePercent()) {
+        <span class="text-[9px] text-brand bg-black/40 rounded px-1 py-0.5">10%</span>
+      }
+      @if (showClose()) {
+        <app-button message="" icon="xmark" type="button"></app-button>
+      }
+      @if (showControls()) {
+        <div class="hidden group-hover:flex items-center gap-1">
+          <app-button message="" icon="download" type="button"></app-button>
+          <app-button message="" icon="expand" type="button"></app-button>
+        </div>
+      }
+    </div>
+  </div>
+  @if (showControls()) {
+    <div class="absolute bottom-0 left-0 right-0 bg-black/60 backdrop-blur-sm px-2 py-1.5 z-10">
+      <div class="flex items-center gap-2">
+        <app-button message="" icon="play" type="button"></app-button>
+        <div class="flex-1 flex items-center gap-0.5 overflow-hidden">
+          @for (bar of timelineBars; track $index) {
+            <div class="flex-1 h-4 rounded-sm"
+                 [class]="$index < 8 ? 'bg-brand/60' : $index < 12 ? 'bg-amber-500/60' : 'bg-border-deep/60'"></div>
+          }
+        </div>
+        <div class="flex items-center gap-1.5 shrink-0">
+          <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-text-secondary"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/></svg>
+          <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-text-secondary"><polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" x2="14" y1="3" y2="10"/><line x1="3" x2="10" y1="21" y2="14"/></svg>
+        </div>
+      </div>
+      <div class="flex justify-between mt-0.5 px-4">
+        @for (t of timeLabels; track t) {
+          <span class="text-[8px] text-text-muted">{{ t }}</span>
+        }
+      </div>
+    </div>
+  }
+</div>

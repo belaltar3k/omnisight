@@ -1,0 +1,53 @@
+<div class="p-6 space-y-6">
+  <div class="flex items-center justify-between">
+    <div>
+      <h1 class="text-xl font-bold text-white">Cameras</h1>
+      <p class="text-sm text-text-secondary mt-0.5">Manage your camera infrastructure</p>
+    </div>
+    <app-button [btnStyle]="BtnStylesEnum.BTN_BLUE" message="Add Camera" icon="plus" type="button" (click)="openAddCameraModal()"></app-button>
+  </div>
+  <div class="grid grid-cols-2 xl:grid-cols-3 gap-4">
+    @for (cam of (cameras$ | async); track cam.id) {
+      <div class="bg-panel border border-border-subtle rounded-lg p-4 hover:border-brand/40 transition-colors">
+        <div class="flex items-start justify-between mb-3">
+          <div class="min-w-0 flex-1">
+            <p class="text-sm font-semibold text-white truncate">{{ cam.name }}</p>
+            <p class="text-xs text-text-muted mt-0.5 font-mono truncate">{{ cam.code }}</p>
+          </div>
+          <span
+            class="flex items-center gap-1 text-[10px] font-medium px-2 py-0.5 rounded-full shrink-0 ml-2"
+            [class]="cam.status === 'online' ? 'bg-emerald-500/20 text-emerald-400' : cam.status === 'maintenance' ? 'bg-yellow-500/20 text-yellow-400' : 'bg-danger/20 text-danger'"
+          >
+            <span
+              class="w-1.5 h-1.5 rounded-full"
+              [class]="cam.status === 'online' ? 'bg-emerald-400' : cam.status === 'maintenance' ? 'bg-yellow-400' : 'bg-danger'"
+            ></span>
+            {{ cam.status | titlecase }}
+          </span>
+        </div>
+        <div class="space-y-1.5 text-xs text-text-secondary mb-3">
+          <div class="flex justify-between">
+            <span>Zone</span>
+            <span class="font-mono text-text-secondary truncate max-w-[120px]">{{ cam.zoneId }}</span>
+          </div>
+          <div class="flex justify-between">
+            <span>Resolution</span>
+            <span class="text-text-secondary">{{ cam.resolutionWidth }}×{{ cam.resolutionHeight }}</span>
+          </div>
+          <div class="flex justify-between">
+            <span>FPS</span>
+            <span class="text-text-secondary">{{ cam.targetFps }}</span>
+          </div>
+          <div class="flex justify-between">
+            <span>RTSP</span>
+            <span class="font-mono text-text-secondary truncate max-w-[120px]" [title]="cam.rtspUrl">{{ cam.rtspUrl }}</span>
+          </div>
+        </div>
+        <div class="flex gap-2 pt-2 border-t border-border-subtle">
+          <app-button message="Edit" icon="pen" type="button" (click)="openEditCameraModal(cam)"></app-button>
+          <app-button message="Delete" icon="trash" type="button" (click)="deleteCamera(cam)"></app-button>
+        </div>
+      </div>
+    }
+  </div>
+</div>

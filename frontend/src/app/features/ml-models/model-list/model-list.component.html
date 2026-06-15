@@ -1,0 +1,49 @@
+<div class="p-6 space-y-6">
+  <div>
+    <h1 class="text-xl font-bold text-white">ML Models</h1>
+    <p class="text-sm text-text-secondary mt-0.5">
+      Model registry and performance metrics
+    </p>
+  </div>
+  <div class="grid grid-cols-1 xl:grid-cols-2 gap-4">
+    @for (model of models$ | async; track model.id) {
+      <div
+        class="bg-panel border border-border-subtle rounded-lg p-4 hover:border-brand/30 cursor-pointer transition-colors"
+      >
+        <div class="flex items-start justify-between mb-3">
+          <div>
+            <p class="text-sm font-bold text-white">{{ model.name }}</p>
+            <p class="text-xs text-text-muted mt-0.5">{{ model.type }}</p>
+          </div>
+          <span
+            class="text-[10px] font-medium px-2 py-0.5 rounded-full"
+            [class]="
+              model.active
+                ? 'bg-emerald-500/20 text-emerald-400'
+                : 'bg-text-muted/20 text-text-secondary'
+            "
+          >
+            {{ model.active ? "Active" : "Inactive" }}
+          </span>
+        </div>
+        <div class="grid grid-cols-3 gap-2 text-xs text-center mb-3">
+          <div class="bg-surface-well rounded p-2">
+            <p class="text-text-muted text-[10px]">Accuracy</p>
+            <p class="text-white font-medium mt-0.5">{{ model.accuracy }}%</p>
+          </div>
+          <div class="bg-surface-well rounded p-2">
+            <p class="text-text-muted text-[10px]">F1 Score</p>
+            <p class="text-white font-medium mt-0.5">{{ model.f1 }}</p>
+          </div>
+          <div class="bg-surface-well rounded p-2">
+            <p class="text-text-muted text-[10px]">Latency</p>
+            <p class="text-white font-medium mt-0.5">{{ model.latency }}ms</p>
+          </div>
+        </div>
+        <p class="text-[10px] text-text-muted">
+          v{{ model.version }} · Updated {{ model.updated }}
+        </p>
+      </div>
+    }
+  </div>
+</div>
