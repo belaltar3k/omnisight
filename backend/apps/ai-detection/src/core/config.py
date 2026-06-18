@@ -94,12 +94,12 @@ class Settings(BaseSettings):
         if not self.WEAPON_WEIGHTS:
             self.WEAPON_WEIGHTS = os.path.join(self.WEIGHTS_DIR, "weapon_detection", "best.pt")
         if not self.POSE_MODEL:
-            candidate = os.path.join(self.WEIGHTS_DIR, "yolov8x-pose.pt")
+            candidate = os.path.join(self.WEIGHTS_DIR, "yolo26l-pose.pt")
             if os.path.exists(candidate):
                 self.POSE_MODEL = candidate
             else:
-                ai_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../../../ai"))
-                self.POSE_MODEL = os.path.join(ai_root, "yolov8x-pose.pt")
+                # Let Ultralytics auto-download on first use
+                self.POSE_MODEL = "yolo26l-pose.pt"
 
     def get_weights_dict(self) -> dict[str, float]:
         return {
