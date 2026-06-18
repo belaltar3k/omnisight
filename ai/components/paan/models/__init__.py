@@ -34,7 +34,11 @@ class PAANModels:
             sys.path.insert(0, str(flexsed_dir))
 
         from api import FlexSED
-        self.flexsed = FlexSED(device=device)
+        self.flexsed = FlexSED(
+            config_path=str(flexsed_dir / "src" / "configs" / "model.yml"),
+            ckpt_path=str(flexsed_dir / "ckpts" / "flexsed_as.pt"),
+            device=device,
+        )
 
         self.device = device
 

@@ -18,7 +18,8 @@ services:
       test: ["CMD-SHELL", "pg_isready -U sentinel -d sentinel_auth"]
       interval: 5s
       timeout: 5s
-      retries: 10
+      retries: 20
+      start_period: 90s
 
   user-postgres:
     image: postgres:16
@@ -36,7 +37,8 @@ services:
       test: ["CMD-SHELL", "pg_isready -U sentinel -d sentinel_user"]
       interval: 5s
       timeout: 5s
-      retries: 10
+      retries: 20
+      start_period: 90s
 
   camera-postgres:
     image: postgres:16
@@ -54,7 +56,8 @@ services:
       test: ["CMD-SHELL", "pg_isready -U sentinel -d sentinel_camera"]
       interval: 5s
       timeout: 5s
-      retries: 10
+      retries: 20
+      start_period: 90s
 
   incident-postgres:
     image: postgres:16
@@ -72,7 +75,8 @@ services:
       test: ["CMD-SHELL", "pg_isready -U sentinel -d sentinel_incident"]
       interval: 5s
       timeout: 5s
-      retries: 10
+      retries: 20
+      start_period: 90s
 
   alert-postgres:
     image: postgres:16
@@ -90,7 +94,8 @@ services:
       test: ["CMD-SHELL", "pg_isready -U sentinel -d sentinel_alert"]
       interval: 5s
       timeout: 5s
-      retries: 10
+      retries: 20
+      start_period: 90s
 
   timescaledb:
     image: timescale/timescaledb:latest-pg15
@@ -101,14 +106,15 @@ services:
       POSTGRES_PASSWORD: omnisight_password
       POSTGRES_DB: omnisight_analytics
     ports:
-      - "5437:5432"
+      - "5441:5432"
     volumes:
       - timescaledb_data:/var/lib/postgresql/data
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U omnisight_user -d omnisight_analytics"]
       interval: 5s
       timeout: 5s
-      retries: 10
+      retries: 20
+      start_period: 90s
 
   redis:
     image: redis:7
@@ -216,7 +222,7 @@ services:
       JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET}
       INTERNAL_SECRET: ${INTERNAL_SECRET}
       AUTH_SERVICE_URL: http://auth-service:3001
-      CAMERA_SERVICE_URL: http://camera-service:3002
+      CAMERA_SERVICE_URL: http://camera-service:3012
 
   camera-service:
     build:
@@ -230,9 +236,9 @@ services:
       camera-postgres:
         condition: service_healthy
     ports:
-      - "3002:3002"
+      - "3012:3012"
     environment:
-      CAMERA_PORT: 3002
+      CAMERA_PORT: 3012
       CAMERA_DB_HOST: camera-postgres
       CAMERA_DB_PORT: 5432
       CAMERA_DB_USERNAME: sentinel
@@ -264,7 +270,7 @@ services:
       INCIDENT_DB_NAME: sentinel_incident
       KAFKA_BROKER: kafka:29092
       JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET}
-      CAMERA_SERVICE_URL: http://camera-service:3002
+      CAMERA_SERVICE_URL: http://camera-service:3012
       EDGE_SYNC_SECRET: ${EDGE_SYNC_SECRET}
 
   alert-service:
@@ -292,9 +298,6 @@ services:
       KAFKA_BROKER: kafka:29092
       JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET}
       USER_SERVICE_URL: http://user-service:3004
-      FIREBASE_PROJECT_ID: ${FIREBASE_PROJECT_ID}
-      FIREBASE_CLIENT_EMAIL: ${FIREBASE_CLIENT_EMAIL}
-      FIREBASE_PRIVATE_KEY: ${FIREBASE_PRIVATE_KEY}
 
   api-gateway:
     build:
@@ -317,7 +320,7 @@ services:
       GATEWAY_PORT: 3000
       AUTH_SERVICE_URL: http://auth-service:3001
       USER_SERVICE_URL: http://user-service:3004
-      CAMERA_SERVICE_URL: http://camera-service:3002
+      CAMERA_SERVICE_URL: http://camera-service:3012
       INCIDENT_SERVICE_URL: http://incident-service:3003
       ALERT_SERVICE_URL: http://alert-service:3005
       ANALYTICS_SERVICE_URL: http://analytics-service:3006
@@ -392,7 +395,7 @@ services:
       POSTGRES_USER: sentinel_edge_admin
       POSTGRES_PASSWORD: ${EDGE_DB_PASSWORD}
     ports:
-      - "8000:8000"
+      - "8008:8000"
     depends_on:
       - edge-database
       - edge-cache
@@ -440,6 +443,40 @@ services:
       - snapshot_data:/snapshots
     depends_on:
       - video-ingestion
+
+  # ─────────────────────────── AI Detection Service ───────────────────────────
+
+  ai-detection:
+    build:
+      context: ../
+      dockerfile: backend/apps/ai-detection/Dockerfile
+    container_name: sentinel-ai-detection
+    restart: unless-stopped
+    ipc: service:video-ingestion
+    ports:
+      - "8010:8010"
+    environment:
+      SERVICE_PORT: 8010
+      DEVICE: ${AI_DEVICE:-cuda}
+      IPC_PREFIX: "cam_"
+      FRAME_WIDTH: 640
+      FRAME_HEIGHT: 640
+      WEIGHTS_DIR: /app/weights
+      DISABLED_MODELS: ${AI_DISABLED_MODELS:-}
+      DISABLED_SA_MODULES: ${AI_DISABLED_SA_MODULES:-}
+      ANOMALY_THRESHOLD: ${AI_ANOMALY_THRESHOLD:-0.55}
+      INCIDENT_SERVICE_URL: http://incident-service:3003
+      EDGE_SYNC_SECRET: ${EDGE_SYNC_SECRET}
+      EDGE_NODE_CODE: ${EDGE_NODE_ID:-edge-node-01}
+      REDIS_HOST: edge-cache
+      REDIS_PORT: 6379
+      RTSP_URLS: ${RTSP_URLS:-[]}
+    volumes:
+      - ${AI_WEIGHTS_PATH:-../ai/weights}:/app/weights:ro
+    depends_on:
+      - video-ingestion
+      - edge-cache
+      - incident-service
 
 volumes:
   auth_postgres_data:

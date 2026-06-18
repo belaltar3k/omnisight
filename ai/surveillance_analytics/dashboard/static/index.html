@@ -1,0 +1,497 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>OmniSight Smart City Analytics Dashboard</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: 'Segoe UI', 'Inter', system-ui, sans-serif;
+    background: #0a0e1a;
+    color: #c8cdd8;
+    overflow-y: auto;
+    min-height: 100vh;
+  }
+  .header {
+    background: linear-gradient(90deg, #0f1629, #162040);
+    padding: 10px 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-bottom: 1px solid #1e2a4a;
+    height: 50px;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+  }
+  .header h1 {
+    font-size: 18px;
+    font-weight: 600;
+    color: #00d4ff;
+    letter-spacing: 1px;
+  }
+  .header .status {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    font-size: 13px;
+  }
+  .status-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    display: inline-block;
+    margin-right: 4px;
+  }
+  .status-dot.connected { background: #00ff88; box-shadow: 0 0 6px #00ff88; }
+  .status-dot.disconnected { background: #ff4466; box-shadow: 0 0 6px #ff4466; }
+
+  .main {
+    display: grid;
+    grid-template-columns: 1fr 380px;
+    grid-template-rows: auto auto;
+    min-height: calc(100vh - 50px);
+    gap: 1px;
+    background: #141a2e;
+  }
+
+  .video-panel {
+    grid-row: 1;
+    grid-column: 1;
+    background: #000;
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 400px;
+  }
+  .video-panel canvas {
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain;
+  }
+  .video-placeholder {
+    color: #334;
+    font-size: 16px;
+    text-align: center;
+  }
+
+  .side-panel {
+    grid-row: 1 / 3;
+    grid-column: 2;
+    background: #0d1220;
+    border-left: 1px solid #1e2a4a;
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
+  }
+  .panel-section {
+    border-bottom: 1px solid #1e2a4a;
+  }
+  .panel-title {
+    padding: 12px 16px;
+    font-size: 13px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    color: #7a8ba8;
+    border-bottom: 1px solid #1e2a4a;
+    flex-shrink: 0;
+    cursor: pointer;
+    user-select: none;
+  }
+  .panel-title:hover { color: #00d4ff; }
+
+  .alert-list {
+    max-height: 250px;
+    overflow-y: auto;
+    padding: 8px;
+  }
+  .alert-item {
+    padding: 10px 12px;
+    margin-bottom: 6px;
+    border-radius: 6px;
+    border-left: 3px solid;
+    background: #111827;
+    font-size: 12px;
+    line-height: 1.5;
+  }
+  .alert-item.critical { border-color: #ef4444; background: #1a0a0f; }
+  .alert-item.high { border-color: #f97316; background: #1a120a; }
+  .alert-item.warning { border-color: #eab308; background: #1a170a; }
+  .alert-item.info { border-color: #3b82f6; background: #0a101a; }
+  .alert-time { color: #556; font-size: 10px; }
+  .alert-type {
+    font-weight: 600;
+    font-size: 11px;
+    text-transform: uppercase;
+    margin-bottom: 2px;
+  }
+  .alert-item.critical .alert-type { color: #ef4444; }
+  .alert-item.high .alert-type { color: #f97316; }
+  .alert-item.warning .alert-type { color: #eab308; }
+  .alert-item.info .alert-type { color: #3b82f6; }
+
+  .analytics-grid {
+    padding: 8px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 6px;
+  }
+  .analytics-item {
+    background: #111827;
+    padding: 10px 12px;
+    border-radius: 6px;
+    font-size: 12px;
+  }
+  .analytics-item .label {
+    color: #667;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 4px;
+  }
+  .analytics-item .value {
+    font-size: 20px;
+    font-weight: 700;
+    color: #fff;
+  }
+  .analytics-item .sub {
+    font-size: 10px;
+    color: #556;
+    margin-top: 2px;
+  }
+  .analytics-item.highlight .value { color: #00d4ff; }
+  .analytics-item.green .value { color: #00ff88; }
+  .analytics-item.orange .value { color: #f97316; }
+  .analytics-item.red .value { color: #ef4444; }
+  .analytics-item.purple .value { color: #a78bfa; }
+
+  .stats-bar {
+    grid-row: 2;
+    grid-column: 1;
+    background: #0d1220;
+    border-top: 1px solid #1e2a4a;
+    display: flex;
+    gap: 1px;
+    overflow: hidden;
+  }
+  .stat-card {
+    flex: 1;
+    padding: 16px 12px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    background: #111827;
+  }
+  .stat-value {
+    font-size: 32px;
+    font-weight: 700;
+    color: #fff;
+    line-height: 1;
+    margin-bottom: 4px;
+  }
+  .stat-label {
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    color: #667;
+    text-align: center;
+  }
+  .stat-card.persons .stat-value { color: #00ff88; }
+  .stat-card.vehicles .stat-value { color: #00d4ff; }
+  .stat-card.speed .stat-value { color: #f97316; }
+  .stat-card.fps .stat-value { color: #a78bfa; }
+  .stat-card.congestion .stat-value { color: #eab308; }
+  .stat-card.throughput .stat-value { color: #06b6d4; }
+
+  .side-panel::-webkit-scrollbar,
+  .alert-list::-webkit-scrollbar { width: 4px; }
+  .side-panel::-webkit-scrollbar-thumb,
+  .alert-list::-webkit-scrollbar-thumb { background: #334; border-radius: 2px; }
+  .side-panel::-webkit-scrollbar-track,
+  .alert-list::-webkit-scrollbar-track { background: transparent; }
+</style>
+</head>
+<body>
+<div class="header">
+  <h1>OMNISIGHT SMART CITY ANALYTICS</h1>
+  <div class="status">
+    <span><span class="status-dot disconnected" id="statusDot"></span><span id="statusText">Disconnected</span></span>
+    <span id="fpsDisplay">-- FPS</span>
+  </div>
+</div>
+
+<div class="main">
+  <div class="video-panel">
+    <canvas id="videoCanvas" width="640" height="480"></canvas>
+    <div class="video-placeholder" id="placeholder">Connecting to analytics feed...</div>
+  </div>
+
+  <div class="side-panel">
+    <div class="panel-section">
+      <div class="panel-title">Traffic Analytics</div>
+      <div class="analytics-grid" id="trafficGrid">
+        <div class="analytics-item highlight">
+          <div class="label">Avg Speed</div>
+          <div class="value" id="avgSpeed">--</div>
+          <div class="sub">km/h</div>
+        </div>
+        <div class="analytics-item orange">
+          <div class="label">Throughput</div>
+          <div class="value" id="throughput">--</div>
+          <div class="sub">vehicles/min</div>
+        </div>
+        <div class="analytics-item">
+          <div class="label">Congestion</div>
+          <div class="value" id="congestion">--</div>
+          <div class="sub" id="congestionLabel">index</div>
+        </div>
+        <div class="analytics-item">
+          <div class="label">Flow Direction</div>
+          <div class="value" id="flowDir" style="font-size:14px;">--</div>
+          <div class="sub" id="flowEntropy"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel-section">
+      <div class="panel-title">Crowd Analytics</div>
+      <div class="analytics-grid" id="crowdGrid">
+        <div class="analytics-item green">
+          <div class="label">Persons</div>
+          <div class="value" id="personCount">0</div>
+          <div class="sub" id="personTrend"></div>
+        </div>
+        <div class="analytics-item">
+          <div class="label">Unique Tracked</div>
+          <div class="value" id="uniquePersons">0</div>
+          <div class="sub">total</div>
+        </div>
+        <div class="analytics-item">
+          <div class="label">Gatherings</div>
+          <div class="value" id="gatheringCount">0</div>
+          <div class="sub" id="gatheringAvgSize"></div>
+        </div>
+        <div class="analytics-item">
+          <div class="label">Queue Length</div>
+          <div class="value" id="queueLength">0</div>
+          <div class="sub" id="queueWait"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel-section">
+      <div class="panel-title">Scene &amp; Trend</div>
+      <div class="analytics-grid" id="sceneGrid">
+        <div class="analytics-item purple">
+          <div class="label">Period</div>
+          <div class="value" id="periodType" style="font-size:14px;">--</div>
+          <div class="sub" id="periodTrend"></div>
+        </div>
+        <div class="analytics-item">
+          <div class="label">Stability</div>
+          <div class="value" id="stability">--</div>
+          <div class="sub" id="visibility"></div>
+        </div>
+        <div class="analytics-item">
+          <div class="label">Object Classes</div>
+          <div class="value" id="objectClasses">--</div>
+          <div class="sub" id="topClass"></div>
+        </div>
+        <div class="analytics-item">
+          <div class="label">Tracks Total</div>
+          <div class="value" id="trackCount">0</div>
+          <div class="sub">active</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel-section">
+      <div class="panel-title">Alerts</div>
+      <div class="alert-list" id="alertList"></div>
+    </div>
+  </div>
+
+  <div class="stats-bar">
+    <div class="stat-card persons">
+      <div class="stat-value" id="statPersons">0</div>
+      <div class="stat-label">Persons</div>
+    </div>
+    <div class="stat-card vehicles">
+      <div class="stat-value" id="statVehicles">0</div>
+      <div class="stat-label">Vehicles</div>
+    </div>
+    <div class="stat-card speed">
+      <div class="stat-value" id="statSpeed">0</div>
+      <div class="stat-label">Avg Speed</div>
+    </div>
+    <div class="stat-card congestion">
+      <div class="stat-value" id="statCongestion">0%</div>
+      <div class="stat-label">Congestion</div>
+    </div>
+    <div class="stat-card throughput">
+      <div class="stat-value" id="statThroughput">0</div>
+      <div class="stat-label">Veh/min</div>
+    </div>
+    <div class="stat-card fps">
+      <div class="stat-value" id="fpsValue">0</div>
+      <div class="stat-label">FPS</div>
+    </div>
+  </div>
+</div>
+
+<script>
+const canvas = document.getElementById('videoCanvas');
+const ctx = canvas.getContext('2d');
+const placeholder = document.getElementById('placeholder');
+const alertList = document.getElementById('alertList');
+const statusDot = document.getElementById('statusDot');
+const statusText = document.getElementById('statusText');
+
+let ws = null;
+let reconnectTimer = null;
+const seenAlerts = new Set();
+
+function connect() {
+  const proto = location.protocol === 'https:' ? 'wss:' : 'ws:';
+  const url = proto + '//' + location.host + '/ws';
+  ws = new WebSocket(url);
+
+  ws.onopen = () => {
+    statusDot.className = 'status-dot connected';
+    statusText.textContent = 'Live';
+    placeholder.style.display = 'none';
+  };
+
+  ws.onmessage = (event) => {
+    try {
+      const data = JSON.parse(event.data);
+      if (data.frame) renderFrame(data.frame);
+      if (data.alerts) renderAlerts(data.alerts);
+      if (data.stats) renderStats(data.stats);
+    } catch(e) {}
+  };
+
+  ws.onclose = () => {
+    statusDot.className = 'status-dot disconnected';
+    statusText.textContent = 'Disconnected';
+    placeholder.style.display = 'block';
+    reconnectTimer = setTimeout(connect, 3000);
+  };
+
+  ws.onerror = () => ws.close();
+}
+
+function renderFrame(b64) {
+  const img = new Image();
+  img.onload = () => {
+    canvas.width = img.width;
+    canvas.height = img.height;
+    ctx.drawImage(img, 0, 0);
+  };
+  img.src = 'data:image/jpeg;base64,' + b64;
+}
+
+function renderAlerts(alerts) {
+  for (const alert of alerts) {
+    if (seenAlerts.has(alert.id)) continue;
+    seenAlerts.add(alert.id);
+
+    const div = document.createElement('div');
+    div.className = 'alert-item ' + (alert.severity || 'info');
+    const ts = alert.timestamp ? new Date(alert.timestamp).toLocaleTimeString() : '';
+    div.innerHTML =
+      '<div class="alert-type">' + escHtml(alert.type || '') + '</div>' +
+      '<div>' + escHtml(alert.message || '') + '</div>' +
+      '<div class="alert-time">' + ts + '</div>';
+    alertList.prepend(div);
+  }
+
+  while (alertList.children.length > 100) {
+    alertList.removeChild(alertList.lastChild);
+  }
+}
+
+function renderStats(stats) {
+  const persons = stats.persons ?? 0;
+  const vehicles = stats.vehicles ?? 0;
+  const tracks = stats.tracks ?? 0;
+  const fps = stats.fps ?? 0;
+
+  // Bottom stat bar
+  setText('statPersons', persons);
+  setText('statVehicles', vehicles);
+  setText('fpsValue', Math.round(fps));
+  setText('fpsDisplay', Math.round(fps) + ' FPS');
+
+  // Traffic analytics
+  const speed = stats.speed_statistics || {};
+  const throughput = stats.traffic_throughput || {};
+  const density = stats.traffic_density || {};
+  const dirFlow = stats.directional_flow || {};
+
+  setText('avgSpeed', speed.mean_speed != null ? Math.round(speed.mean_speed) : '--');
+  setText('throughput', throughput.vehicles_per_minute_avg != null ? throughput.vehicles_per_minute_avg.toFixed(1) : '--');
+
+  const congIdx = density.congestion_index;
+  if (congIdx != null) {
+    setText('congestion', Math.round(congIdx * 100) + '%');
+    setText('statCongestion', Math.round(congIdx * 100) + '%');
+    const congEl = document.getElementById('congestion').parentElement;
+    congEl.className = 'analytics-item' + (congIdx > 0.8 ? ' red' : congIdx > 0.5 ? ' orange' : '');
+  }
+  setText('statSpeed', speed.mean_speed != null ? Math.round(speed.mean_speed) : '0');
+  setText('statThroughput', throughput.vehicles_per_minute_avg != null ? throughput.vehicles_per_minute_avg.toFixed(1) : '0');
+
+  setText('flowDir', dirFlow.dominant_direction || '--');
+  setText('flowEntropy', dirFlow.entropy != null ? 'entropy: ' + dirFlow.entropy.toFixed(2) : '');
+
+  // Crowd analytics
+  const crowd = stats.crowd_density || {};
+  const trend = stats.trend_monitor || {};
+  const gathering = stats.gathering_statistics || {};
+  const queue = stats.queue_analytics || {};
+
+  setText('personCount', crowd.current_count ?? persons);
+  const trendDir = (trend.person_short_term || {}).direction || '';
+  const arrows = { increasing: ' ^', decreasing: ' v', stable: ' =' };
+  setText('personTrend', trendDir ? 'trend: ' + trendDir + (arrows[trendDir] || '') : '');
+  setText('uniquePersons', crowd.unique_persons ?? 0);
+
+  setText('gatheringCount', gathering.active_gatherings ?? 0);
+  setText('gatheringAvgSize', gathering.avg_size != null ? 'avg size: ' + gathering.avg_size.toFixed(1) : '');
+  setText('queueLength', queue.queue_length ?? 0);
+  setText('queueWait', queue.estimated_wait_sec != null ? 'wait: ' + Math.round(queue.estimated_wait_sec) + 's' : '');
+
+  // Scene & trend
+  const peak = stats.peak_analysis || {};
+  const scene = stats.scene_baseline || {};
+  const objDist = stats.object_distribution || {};
+
+  setText('periodType', peak.current_period || '--');
+  setText('periodTrend', peak.five_min_trend || '');
+  setText('stability', scene.stability_index != null ? scene.stability_index.toFixed(2) : '--');
+  setText('visibility', scene.visibility || '');
+  setText('objectClasses', objDist.distinct_classes ?? '--');
+  const topClasses = objDist.top_5_classes || [];
+  setText('topClass', topClasses.length > 0 ? 'top: ' + topClasses[0] : '');
+  setText('trackCount', tracks);
+}
+
+function setText(id, val) {
+  const el = document.getElementById(id);
+  if (el) el.textContent = val;
+}
+
+function escHtml(s) {
+  const d = document.createElement('div');
+  d.textContent = s;
+  return d.innerHTML;
+}
+
+connect();
+</script>
+</body>
+</html>

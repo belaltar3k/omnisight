@@ -56,7 +56,7 @@ export class IncidentsService implements OnModuleInit {
     private readonly kafkaClient: ClientKafka,
   ) {
     this.cameraServiceUrl =
-      configService.get<string>('CAMERA_SERVICE_URL') ?? 'http://localhost:3002';
+      configService.get<string>('CAMERA_SERVICE_URL') ?? 'http://localhost:3012';
     this.edgeSyncSecret =
       configService.get<string>('EDGE_SYNC_SECRET') ?? '';
     this.cameraServiceToken = this.jwtService.sign(

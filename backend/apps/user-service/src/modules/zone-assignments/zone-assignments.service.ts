@@ -35,7 +35,7 @@ export class ZoneAssignmentsService {
     this.authServiceUrl =
       this.configService.get<string>('AUTH_SERVICE_URL') ?? 'http://localhost:3001';
     this.cameraServiceUrl =
-      this.configService.get<string>('CAMERA_SERVICE_URL') ?? 'http://localhost:3002';
+      this.configService.get<string>('CAMERA_SERVICE_URL') ?? 'http://localhost:3012';
     this.cameraServiceToken = this.jwtService.sign(
       { sub: 'user-service', email: 'user-service@internal', role: 'user_service' },
       { expiresIn: '10y' },

@@ -74,10 +74,18 @@ class CameraWorker:
                         # Validate frame shape matches expected shared memory size before publishing
                         expected_size = config.FRAME_HEIGHT * config.FRAME_WIDTH * 3
                         if frame_resized.nbytes == expected_size:
-                            if len(self.buffer) == config.BUFFER_SIZE:
-                                self.drop_count += 1
+                            # Keep a rolling buffer of latest frames
                             self.buffer.append((time.time(), frame_resized))
-                            self.publisher.publish(frame_resized)
+                            
+                            # Check if OpenCV decoded a completely black frame
+                            if frame_resized.max() == 0:
+                                logger.warning(f"Decoded frame is all-black from OpenCV for {self.camera_id}")
+                            
+                            try:
+                                self.publisher.publish(frame_resized)
+                            except Exception as e:
+                                self.drop_count += 1
+                                logger.error(f"Failed to publish frame: {e}")
                         else:
                             logger.warning(
                                 f"Frame shape mismatch for {self.camera_id}: "

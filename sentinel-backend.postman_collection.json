@@ -1,0 +1,889 @@
+{
+  "info": {
+    "name": "Sentinel Backend API",
+    "description": "Complete API collection — all routes go through the API Gateway on port 3000.\n\nFlow:\n1. Register or Login → token is auto-saved to {{token}}\n2. Use any protected route — Bearer token is added automatically via collection auth\n3. Edge routes use {{edgeSecret}} header instead of JWT",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }]
+  },
+  "variable": [
+    { "key": "baseUrl",     "value": "http://localhost:3000", "type": "string" },
+    { "key": "token",       "value": "", "type": "string" },
+    { "key": "refreshToken","value": "", "type": "string" },
+    { "key": "userId",      "value": "", "type": "string" },
+    { "key": "zoneId",      "value": "", "type": "string" },
+    { "key": "cameraId",    "value": "", "type": "string" },
+    { "key": "edgeNodeId",  "value": "", "type": "string" },
+    { "key": "incidentId",  "value": "", "type": "string" },
+    { "key": "assignmentId","value": "", "type": "string" },
+    { "key": "edgeSecret",  "value": "some_random_secret_123", "type": "string" }
+  ],
+  "item": [
+
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Register",
+          "event": [{ "listen": "test", "script": { "exec": [
+            "const res = pm.response.json();",
+            "if (res.data && res.data.user) {",
+            "  pm.collectionVariables.set('userId', res.data.user.id);",
+            "}"
+          ], "type": "text/javascript" }}],
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"admin@sentinel.com\",\n  \"password\": \"Admin123!\",\n  \"fullName\": \"Admin User\",\n  \"role\": \"admin\",\n  \"phone\": \"+1234567890\",\n  \"jobTitle\": \"Security Manager\",\n  \"department\": \"Security\",\n  \"employeeCode\": \"EMP-001\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/v1/auth/register", "host": ["{{baseUrl}}"], "path": ["api","v1","auth","register"] }
+          }
+        },
+        {
+          "name": "Login",
+          "event": [{ "listen": "test", "script": { "exec": [
+            "const res = pm.response.json();",
+            "if (res.data) {",
+            "  pm.collectionVariables.set('token', res.data.accessToken);",
+            "  pm.collectionVariables.set('refreshToken', res.data.refreshToken);",
+            "  pm.collectionVariables.set('userId', res.data.user.id);",
+            "  console.log('Token saved:', res.data.accessToken.substring(0, 30) + '...');",
+            "}"
+          ], "type": "text/javascript" }}],
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"admin@sentinel.com\",\n  \"password\": \"Admin123!\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/v1/auth/login", "host": ["{{baseUrl}}"], "path": ["api","v1","auth","login"] }
+          }
+        },
+        {
+          "name": "Refresh Token",
+          "event": [{ "listen": "test", "script": { "exec": [
+            "const res = pm.response.json();",
+            "if (res.data) {",
+            "  pm.collectionVariables.set('token', res.data.accessToken);",
+            "  pm.collectionVariables.set('refreshToken', res.data.refreshToken);",
+            "}"
+          ], "type": "text/javascript" }}],
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"refreshToken\": \"{{refreshToken}}\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/v1/auth/refresh", "host": ["{{baseUrl}}"], "path": ["api","v1","auth","refresh"] }
+          }
+        },
+        {
+          "name": "Get Me",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/api/v1/auth/me", "host": ["{{baseUrl}}"], "path": ["api","v1","auth","me"] }
+          }
+        },
+        {
+          "name": "Logout",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"refreshToken\": \"{{refreshToken}}\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/v1/auth/logout", "host": ["{{baseUrl}}"], "path": ["api","v1","auth","logout"] }
+          }
+        },
+        {
+          "name": "Forgot Password",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"admin@sentinel.com\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/v1/auth/forgot-password", "host": ["{{baseUrl}}"], "path": ["api","v1","auth","forgot-password"] }
+          }
+        },
+        {
+          "name": "Reset Password",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"token\": \"RESET_TOKEN_FROM_EMAIL\",\n  \"newPassword\": \"NewPass123!\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/v1/auth/reset-password", "host": ["{{baseUrl}}"], "path": ["api","v1","auth","reset-password"] }
+          }
+        }
+      ]
+    },
+
+    {
+      "name": "Zones",
+      "item": [
+        {
+          "name": "Create Zone",
+          "event": [{ "listen": "test", "script": { "exec": [
+            "const res = pm.response.json();",
+            "if (res.data && res.data.id) pm.collectionVariables.set('zoneId', res.data.id);"
+          ], "type": "text/javascript" }}],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Zone Alpha\",\n  \"description\": \"Main entrance area\",\n  \"location\": \"Building A - Floor 1\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/v1/zones", "host": ["{{baseUrl}}"], "path": ["api","v1","zones"] }
+          }
+        },
+        {
+          "name": "Get All Zones",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/api/v1/zones", "host": ["{{baseUrl}}"], "path": ["api","v1","zones"] }
+          }
+        },
+        {
+          "name": "Get Zone by ID",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/api/v1/zones/{{zoneId}}", "host": ["{{baseUrl}}"], "path": ["api","v1","zones","{{zoneId}}"] }
+          }
+        },
+        {
+          "name": "Update Zone",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Zone Alpha Updated\",\n  \"description\": \"Updated description\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/v1/zones/{{zoneId}}", "host": ["{{baseUrl}}"], "path": ["api","v1","zones","{{zoneId}}"] }
+          }
+        },
+        {
+          "name": "Delete Zone",
+          "request": {
+            "method": "DELETE",
+            "url": { "raw": "{{baseUrl}}/api/v1/zones/{{zoneId}}", "host": ["{{baseUrl}}"], "path": ["api","v1","zones","{{zoneId}}"] }
+          }
+        }
+      ]
+    },
+
+    {
+      "name": "Edge Nodes",
+      "item": [
+        {
+          "name": "Create Edge Node",
+          "event": [{ "listen": "test", "script": { "exec": [
+            "const res = pm.response.json();",
+            "if (res.data && res.data.id) pm.collectionVariables.set('edgeNodeId', res.data.id);"
+          ], "type": "text/javascript" }}],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Edge Node 01\",\n  \"code\": \"EDGE-01\",\n  \"ipAddress\": \"192.168.1.100\",\n  \"maxCameras\": 8\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/v1/edge-nodes", "host": ["{{baseUrl}}"], "path": ["api","v1","edge-nodes"] }
+          }
+        },
+        {
+          "name": "Get All Edge Nodes",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/api/v1/edge-nodes", "host": ["{{baseUrl}}"], "path": ["api","v1","edge-nodes"] }
+          }
+        },
+        {
+          "name": "Get Edge Node by ID",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/api/v1/edge-nodes/{{edgeNodeId}}", "host": ["{{baseUrl}}"], "path": ["api","v1","edge-nodes","{{edgeNodeId}}"] }
+          }
+        },
+        {
+          "name": "Update Edge Node",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Edge Node 01 Updated\",\n  \"ipAddress\": \"192.168.1.101\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/v1/edge-nodes/{{edgeNodeId}}", "host": ["{{baseUrl}}"], "path": ["api","v1","edge-nodes","{{edgeNodeId}}"] }
+          }
+        },
+        {
+          "name": "Delete Edge Node",
+          "request": {
+            "method": "DELETE",
+            "url": { "raw": "{{baseUrl}}/api/v1/edge-nodes/{{edgeNodeId}}", "host": ["{{baseUrl}}"], "path": ["api","v1","edge-nodes","{{edgeNodeId}}"] }
+          }
+        }
+      ]
+    },
+
+    {
+      "name": "Cameras",
+      "item": [
+        {
+          "name": "Create Camera",
+          "event": [{ "listen": "test", "script": { "exec": [
+            "const res = pm.response.json();",
+            "if (res.data && res.data.id) pm.collectionVariables.set('cameraId', res.data.id);"
+          ], "type": "text/javascript" }}],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"CAM-ALPHA-01\",\n  \"code\": \"CAM-ALPHA-01\",\n  \"rtspUrl\": \"rtsp://192.168.1.200/stream\",\n  \"zoneId\": \"{{zoneId}}\",\n  \"edgeNodeId\": \"{{edgeNodeId}}\",\n  \"targetFps\": 30,\n  \"resolutionWidth\": 1920,\n  \"resolutionHeight\": 1080\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/v1/cameras", "host": ["{{baseUrl}}"], "path": ["api","v1","cameras"] }
+          }
+        },
+        {
+          "name": "Get All Cameras",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/api/v1/cameras", "host": ["{{baseUrl}}"], "path": ["api","v1","cameras"] }
+          }
+        },
+        {
+          "name": "Get Cameras by Zone",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/api/v1/cameras/by-zone/{{zoneId}}", "host": ["{{baseUrl}}"], "path": ["api","v1","cameras","by-zone","{{zoneId}}"] }
+          }
+        },
+        {
+          "name": "Get Cameras by Edge Node",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/api/v1/cameras/by-edge-node/{{edgeNodeId}}", "host": ["{{baseUrl}}"], "path": ["api","v1","cameras","by-edge-node","{{edgeNodeId}}"] }
+          }
+        },
+        {
+          "name": "Get Camera by ID",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/api/v1/cameras/{{cameraId}}", "host": ["{{baseUrl}}"], "path": ["api","v1","cameras","{{cameraId}}"] }
+          }
+        },
+        {
+          "name": "Update Camera",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"CAM-ALPHA-01 Updated\",\n  \"targetFps\": 25\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/v1/cameras/{{cameraId}}", "host": ["{{baseUrl}}"], "path": ["api","v1","cameras","{{cameraId}}"] }
+          }
+        },
+        {
+          "name": "Delete Camera",
+          "request": {
+            "method": "DELETE",
+            "url": { "raw": "{{baseUrl}}/api/v1/cameras/{{cameraId}}", "host": ["{{baseUrl}}"], "path": ["api","v1","cameras","{{cameraId}}"] }
+          }
+        }
+      ]
+    },
+
+    {
+      "name": "Edge (No Auth)",
+      "description": "Sent by edge nodes using x-edge-secret header instead of JWT",
+      "item": [
+        {
+          "name": "Edge Sync (Detect Incidents)",
+          "event": [{ "listen": "test", "script": { "exec": [
+            "const res = pm.response.json();",
+            "if (res.data && res.data.incidentIds && res.data.incidentIds.length > 0) {",
+            "  pm.collectionVariables.set('incidentId', res.data.incidentIds[0]);",
+            "  console.log('Incident ID saved:', res.data.incidentIds[0]);",
+            "}"
+          ], "type": "text/javascript" }}],
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "x-edge-secret", "value": "{{edgeSecret}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"edgeNodeCode\": \"EDGE-01\",\n  \"detections\": [\n    {\n      \"cameraCode\": \"CAM-ALPHA-01\",\n      \"crimeType\": \"theft\",\n      \"confidence\": 0.92,\n      \"detectedAt\": \"2026-06-09T10:00:00.000Z\",\n      \"trackId\": \"track-001\"\n    }\n  ]\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/v1/edge/sync", "host": ["{{baseUrl}}"], "path": ["api","v1","edge","sync"] }
+          }
+        },
+        {
+          "name": "Edge Classify (Update Confidence)",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "x-edge-secret", "value": "{{edgeSecret}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"edgeNodeCode\": \"EDGE-01\",\n  \"classifications\": [\n    {\n      \"trackId\": \"track-001\",\n      \"cameraCode\": \"CAM-ALPHA-01\",\n      \"crimeType\": \"theft\",\n      \"confidence\": 0.97\n    }\n  ]\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/v1/edge/classify", "host": ["{{baseUrl}}"], "path": ["api","v1","edge","classify"] }
+          }
+        }
+      ]
+    },
+
+    {
+      "name": "Incidents",
+      "item": [
+        {
+          "name": "Create Incident (Manual)",
+          "event": [{ "listen": "test", "script": { "exec": [
+            "const res = pm.response.json();",
+            "if (res.data && res.data.id) pm.collectionVariables.set('incidentId', res.data.id);"
+          ], "type": "text/javascript" }}],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"cameraCode\": \"CAM-ALPHA-01\",\n  \"crimeType\": \"theft\",\n  \"confidence\": 0.95,\n  \"detectedAt\": \"2026-06-09T10:00:00.000Z\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/v1/incidents", "host": ["{{baseUrl}}"], "path": ["api","v1","incidents"] }
+          }
+        },
+        {
+          "name": "Get All Incidents",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/incidents?page=1&limit=20",
+              "host": ["{{baseUrl}}"],
+              "path": ["api","v1","incidents"],
+              "query": [
+                { "key": "page",   "value": "1" },
+                { "key": "limit",  "value": "20" },
+                { "key": "status", "value": "", "disabled": true },
+                { "key": "crimeType", "value": "", "disabled": true },
+                { "key": "priority", "value": "", "disabled": true },
+                { "key": "zoneId", "value": "", "disabled": true },
+                { "key": "cameraCode", "value": "", "disabled": true },
+                { "key": "from",   "value": "", "disabled": true },
+                { "key": "to",     "value": "", "disabled": true }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get My Incidents",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/incidents/my?page=1&limit=20",
+              "host": ["{{baseUrl}}"],
+              "path": ["api","v1","incidents","my"],
+              "query": [
+                { "key": "page",  "value": "1" },
+                { "key": "limit", "value": "20" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Incident by ID",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/api/v1/incidents/{{incidentId}}", "host": ["{{baseUrl}}"], "path": ["api","v1","incidents","{{incidentId}}"] }
+          }
+        },
+        {
+          "name": "Update Incident",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"priority\": \"critical\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/v1/incidents/{{incidentId}}", "host": ["{{baseUrl}}"], "path": ["api","v1","incidents","{{incidentId}}"] }
+          }
+        },
+        {
+          "name": "Delete Incident",
+          "request": {
+            "method": "DELETE",
+            "url": { "raw": "{{baseUrl}}/api/v1/incidents/{{incidentId}}", "host": ["{{baseUrl}}"], "path": ["api","v1","incidents","{{incidentId}}"] }
+          }
+        },
+        {
+          "name": "Assign Incident",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"assignedTo\": \"{{userId}}\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/v1/incidents/{{incidentId}}/assign", "host": ["{{baseUrl}}"], "path": ["api","v1","incidents","{{incidentId}}","assign"] }
+          }
+        },
+        {
+          "name": "Acknowledge Incident",
+          "request": {
+            "method": "POST",
+            "url": { "raw": "{{baseUrl}}/api/v1/incidents/{{incidentId}}/acknowledge", "host": ["{{baseUrl}}"], "path": ["api","v1","incidents","{{incidentId}}","acknowledge"] }
+          }
+        },
+        {
+          "name": "Start Investigation",
+          "request": {
+            "method": "POST",
+            "url": { "raw": "{{baseUrl}}/api/v1/incidents/{{incidentId}}/investigate", "host": ["{{baseUrl}}"], "path": ["api","v1","incidents","{{incidentId}}","investigate"] }
+          }
+        },
+        {
+          "name": "Dispatch Guard",
+          "request": {
+            "method": "POST",
+            "url": { "raw": "{{baseUrl}}/api/v1/incidents/{{incidentId}}/dispatch", "host": ["{{baseUrl}}"], "path": ["api","v1","incidents","{{incidentId}}","dispatch"] }
+          }
+        },
+        {
+          "name": "Guard On Scene",
+          "request": {
+            "method": "POST",
+            "url": { "raw": "{{baseUrl}}/api/v1/incidents/{{incidentId}}/on-scene", "host": ["{{baseUrl}}"], "path": ["api","v1","incidents","{{incidentId}}","on-scene"] }
+          }
+        },
+        {
+          "name": "Resolve Incident",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"resolutionNote\": \"Suspect apprehended and handed to authorities\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/v1/incidents/{{incidentId}}/resolve", "host": ["{{baseUrl}}"], "path": ["api","v1","incidents","{{incidentId}}","resolve"] }
+          }
+        },
+        {
+          "name": "Mark False Positive",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"reason\": \"Camera malfunction caused false detection\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/v1/incidents/{{incidentId}}/false-positive", "host": ["{{baseUrl}}"], "path": ["api","v1","incidents","{{incidentId}}","false-positive"] }
+          }
+        },
+        {
+          "name": "Add Note",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"content\": \"Suspect seen heading towards exit B\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/v1/incidents/{{incidentId}}/notes", "host": ["{{baseUrl}}"], "path": ["api","v1","incidents","{{incidentId}}","notes"] }
+          }
+        },
+        {
+          "name": "Get Notes",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/api/v1/incidents/{{incidentId}}/notes", "host": ["{{baseUrl}}"], "path": ["api","v1","incidents","{{incidentId}}","notes"] }
+          }
+        },
+        {
+          "name": "Get Timeline",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/api/v1/incidents/{{incidentId}}/timeline", "host": ["{{baseUrl}}"], "path": ["api","v1","incidents","{{incidentId}}","timeline"] }
+          }
+        }
+      ]
+    },
+
+    {
+      "name": "User Profiles",
+      "item": [
+        {
+          "name": "Create Profile (Admin only)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"authUserId\": \"{{userId}}\",\n  \"fullName\": \"Admin User\",\n  \"phone\": \"+1234567890\",\n  \"jobTitle\": \"Security Manager\",\n  \"department\": \"Security\",\n  \"employeeCode\": \"EMP-001\",\n  \"shiftName\": \"Morning\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/v1/profiles", "host": ["{{baseUrl}}"], "path": ["api","v1","profiles"] }
+          }
+        },
+        {
+          "name": "Get All Profiles (Admin only)",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/api/v1/profiles", "host": ["{{baseUrl}}"], "path": ["api","v1","profiles"] }
+          }
+        },
+        {
+          "name": "Get My Profile",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/api/v1/profiles/auth/{{userId}}", "host": ["{{baseUrl}}"], "path": ["api","v1","profiles","auth","{{userId}}"] }
+          }
+        },
+        {
+          "name": "Get Full Profile (with assignments)",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/api/v1/profiles/auth/{{userId}}/full", "host": ["{{baseUrl}}"], "path": ["api","v1","profiles","auth","{{userId}}","full"] }
+          }
+        },
+        {
+          "name": "Update Profile",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"phone\": \"+9876543210\",\n  \"jobTitle\": \"Senior Security Manager\",\n  \"shiftName\": \"Night\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/v1/profiles/auth/{{userId}}", "host": ["{{baseUrl}}"], "path": ["api","v1","profiles","auth","{{userId}}"] }
+          }
+        }
+      ]
+    },
+
+    {
+      "name": "Zone Assignments",
+      "item": [
+        {
+          "name": "Create Assignment",
+          "event": [{ "listen": "test", "script": { "exec": [
+            "const res = pm.response.json();",
+            "if (res.data && res.data.id) pm.collectionVariables.set('assignmentId', res.data.id);"
+          ], "type": "text/javascript" }}],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"authUserId\": \"{{userId}}\",\n  \"zoneId\": \"{{zoneId}}\",\n  \"notes\": \"Assigned to main gate duty\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/v1/zone-assignments", "host": ["{{baseUrl}}"], "path": ["api","v1","zone-assignments"] }
+          }
+        },
+        {
+          "name": "Get All Assignments (Admin)",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/api/v1/zone-assignments", "host": ["{{baseUrl}}"], "path": ["api","v1","zone-assignments"] }
+          }
+        },
+        {
+          "name": "Get Assignments by User",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/api/v1/zone-assignments/user/{{userId}}", "host": ["{{baseUrl}}"], "path": ["api","v1","zone-assignments","user","{{userId}}"] }
+          }
+        },
+        {
+          "name": "Get Users in Zone (with profiles)",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/api/v1/zone-assignments/zone/{{zoneId}}/users", "host": ["{{baseUrl}}"], "path": ["api","v1","zone-assignments","zone","{{zoneId}}","users"] }
+          }
+        },
+        {
+          "name": "Get Assignments by Zone",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/api/v1/zone-assignments/zone/{{zoneId}}", "host": ["{{baseUrl}}"], "path": ["api","v1","zone-assignments","zone","{{zoneId}}"] }
+          }
+        },
+        {
+          "name": "Reassign to New Zone",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"newZoneId\": \"PASTE_NEW_ZONE_ID_HERE\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/v1/zone-assignments/{{assignmentId}}/reassign", "host": ["{{baseUrl}}"], "path": ["api","v1","zone-assignments","{{assignmentId}}","reassign"] }
+          }
+        },
+        {
+          "name": "Remove Assignment by User+Zone",
+          "request": {
+            "method": "DELETE",
+            "url": { "raw": "{{baseUrl}}/api/v1/zone-assignments/user/{{userId}}/zone/{{zoneId}}", "host": ["{{baseUrl}}"], "path": ["api","v1","zone-assignments","user","{{userId}}","zone","{{zoneId}}"] }
+          }
+        },
+        {
+          "name": "Remove Assignment by ID",
+          "request": {
+            "method": "DELETE",
+            "url": { "raw": "{{baseUrl}}/api/v1/zone-assignments/{{assignmentId}}", "host": ["{{baseUrl}}"], "path": ["api","v1","zone-assignments","{{assignmentId}}"] }
+          }
+        }
+      ]
+    },
+
+    {
+      "name": "Device Tokens (Push Notifications)",
+      "item": [
+        {
+          "name": "Register Device Token",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fcmToken\": \"your-firebase-fcm-token-here\",\n  \"deviceType\": \"android\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/v1/device-tokens", "host": ["{{baseUrl}}"], "path": ["api","v1","device-tokens"] }
+          }
+        },
+        {
+          "name": "Unregister Device Token",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fcmToken\": \"your-firebase-fcm-token-here\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/v1/device-tokens", "host": ["{{baseUrl}}"], "path": ["api","v1","device-tokens"] }
+          }
+        }
+      ]
+    },
+
+    {
+      "name": "Analytics",
+      "description": "Analytics service endpoints — dashboard, incident stats, trends, response times, camera performance, heatmap, and report generation. All proxied through the gateway.",
+      "item": [
+        {
+          "name": "Dashboard",
+          "description": "Dashboard summary and overview endpoints",
+          "item": [
+            {
+              "name": "Get Dashboard Summary",
+              "request": {
+                "method": "GET",
+                "url": { "raw": "{{baseUrl}}/api/v1/analytics/dashboard/", "host": ["{{baseUrl}}"], "path": ["api","v1","analytics","dashboard",""] }
+              }
+            }
+          ]
+        },
+        {
+          "name": "Incident Analytics",
+          "description": "Incident statistics, trends, and response time analytics",
+          "item": [
+            {
+              "name": "Get Incident Stats",
+              "request": {
+                "method": "GET",
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/analytics/incidents/stats?date_from=2026-01-01T00:00:00Z&date_to=2026-12-31T23:59:59Z",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api","v1","analytics","incidents","stats"],
+                  "query": [
+                    { "key": "date_from", "value": "2026-01-01T00:00:00Z", "description": "Start date (ISO 8601). Defaults to 30 days ago if omitted." },
+                    { "key": "date_to", "value": "2026-12-31T23:59:59Z", "description": "End date (ISO 8601). Defaults to now if omitted." }
+                  ]
+                }
+              }
+            },
+            {
+              "name": "Get Incident Trends",
+              "request": {
+                "method": "GET",
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/analytics/incidents/trends?interval=D&date_from=2026-01-01T00:00:00Z&date_to=2026-12-31T23:59:59Z",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api","v1","analytics","incidents","trends"],
+                  "query": [
+                    { "key": "interval", "value": "D", "description": "Aggregation interval: D (daily), W (weekly), M (monthly)" },
+                    { "key": "date_from", "value": "2026-01-01T00:00:00Z", "description": "Start date (ISO 8601). Defaults to 30 days ago if omitted." },
+                    { "key": "date_to", "value": "2026-12-31T23:59:59Z", "description": "End date (ISO 8601). Defaults to now if omitted." }
+                  ]
+                }
+              }
+            },
+            {
+              "name": "Get Response Times",
+              "request": {
+                "method": "GET",
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/analytics/incidents/response-times?date_from=2026-01-01T00:00:00Z&date_to=2026-12-31T23:59:59Z",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api","v1","analytics","incidents","response-times"],
+                  "query": [
+                    { "key": "date_from", "value": "2026-01-01T00:00:00Z", "description": "Start date (ISO 8601). Defaults to 30 days ago if omitted." },
+                    { "key": "date_to", "value": "2026-12-31T23:59:59Z", "description": "End date (ISO 8601). Defaults to now if omitted." }
+                  ]
+                }
+              }
+            }
+          ]
+        },
+        {
+          "name": "Camera Analytics",
+          "description": "Camera performance and uptime metrics",
+          "item": [
+            {
+              "name": "Get Camera Performance",
+              "request": {
+                "method": "GET",
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/analytics/cameras/performance?date_from=2026-06-01T00:00:00Z&date_to=2026-06-18T23:59:59Z",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api","v1","analytics","cameras","performance"],
+                  "query": [
+                    { "key": "date_from", "value": "2026-06-01T00:00:00Z", "description": "Start date (ISO 8601). Defaults to 7 days ago if omitted." },
+                    { "key": "date_to", "value": "2026-06-18T23:59:59Z", "description": "End date (ISO 8601). Defaults to now if omitted." }
+                  ]
+                }
+              }
+            }
+          ]
+        },
+        {
+          "name": "Heatmap",
+          "description": "Spatial heatmap data for incident distribution",
+          "item": [
+            {
+              "name": "Get Heatmap",
+              "request": {
+                "method": "GET",
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/analytics/heatmap/?date_from=2026-01-01T00:00:00Z&date_to=2026-12-31T23:59:59Z",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api","v1","analytics","heatmap",""],
+                  "query": [
+                    { "key": "crime_type", "value": "", "disabled": true, "description": "Filter by crime type (e.g. theft, vandalism). Optional." },
+                    { "key": "date_from", "value": "2026-01-01T00:00:00Z", "description": "Start date (ISO 8601). Defaults to 30 days ago if omitted." },
+                    { "key": "date_to", "value": "2026-12-31T23:59:59Z", "description": "End date (ISO 8601). Defaults to now if omitted." }
+                  ]
+                }
+              }
+            }
+          ]
+        },
+        {
+          "name": "Reports",
+          "description": "Generate and download CSV reports",
+          "item": [
+            {
+              "name": "Generate Incident Summary Report",
+              "request": {
+                "method": "POST",
+                "header": [{ "key": "Content-Type", "value": "application/json" }],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"report_type\": \"incident_summary\",\n  \"date_from\": \"2026-01-01T00:00:00Z\",\n  \"date_to\": \"2026-12-31T23:59:59Z\",\n  \"format\": \"csv\"\n}"
+                },
+                "url": { "raw": "{{baseUrl}}/api/v1/analytics/reports/generate", "host": ["{{baseUrl}}"], "path": ["api","v1","analytics","reports","generate"] }
+              }
+            },
+            {
+              "name": "Generate Camera Performance Report",
+              "request": {
+                "method": "POST",
+                "header": [{ "key": "Content-Type", "value": "application/json" }],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"report_type\": \"camera_performance\",\n  \"date_from\": \"2026-01-01T00:00:00Z\",\n  \"date_to\": \"2026-12-31T23:59:59Z\",\n  \"format\": \"csv\"\n}"
+                },
+                "url": { "raw": "{{baseUrl}}/api/v1/analytics/reports/generate", "host": ["{{baseUrl}}"], "path": ["api","v1","analytics","reports","generate"] }
+              }
+            }
+          ]
+        }
+      ]
+    },
+
+    {
+      "name": "Health",
+      "description": "Gateway health check — does not require authentication",
+      "item": [
+        {
+          "name": "Gateway Health Check",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/health", "host": ["{{baseUrl}}"], "path": ["health"] }
+          }
+        }
+      ]
+    },
+
+    {
+      "name": "Edge Infrastructure (Direct)",
+      "description": "Edge-tier services accessed directly (not through the gateway). These expose Prometheus metrics endpoints for monitoring.",
+      "item": [
+        {
+          "name": "Monitoring Agent — Prometheus Metrics",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "url": { "raw": "http://localhost:9101/metrics", "host": ["http://localhost:9101"], "path": ["metrics"] },
+            "description": "Custom Prometheus exporter — exposes CPU, memory, disk, GPU, camera status, detection FPS, and detection latency metrics."
+          }
+        },
+        {
+          "name": "Video Ingestion — Prometheus Metrics",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "url": { "raw": "http://localhost:8008/metrics", "host": ["http://localhost:8008"], "path": ["metrics"] },
+            "description": "Video ingestion Prometheus metrics — camera_online, camera_fps, camera_frame_drops, camera_bitrate_kbps per camera."
+          }
+        },
+        {
+          "name": "Node Exporter — Prometheus Metrics",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "url": { "raw": "http://localhost:9100/metrics", "host": ["http://localhost:9100"], "path": ["metrics"] },
+            "description": "Standard Prometheus node-exporter — host-level system metrics."
+          }
+        }
+      ]
+    }
+
+  ]
+}

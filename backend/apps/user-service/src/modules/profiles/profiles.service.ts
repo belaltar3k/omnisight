@@ -32,7 +32,7 @@ export class ProfilesService {
     private readonly configService: ConfigService,
   ) {
     this.authServiceUrl = this.configService.get<string>('AUTH_SERVICE_URL') ?? 'http://localhost:3001';
-    this.cameraServiceUrl = this.configService.get<string>('CAMERA_SERVICE_URL') ?? 'http://localhost:3002';
+    this.cameraServiceUrl = this.configService.get<string>('CAMERA_SERVICE_URL') ?? 'http://localhost:3012';
   }
 
   // ─── Create ────────────────────────────────────────────────────────────────

@@ -93,7 +93,7 @@ echo "[ HTTP endpoints ]"
 
 # Services with /health routes
 http_check "api-gateway       :3000/health"      "http://localhost:3000/health"          "2"
-http_check "camera-service    :3002/health"      "http://localhost:3002/health"          "2"
+http_check "camera-service    :3012/health"      "http://localhost:3012/health"          "2"
 http_check "user-service      :3004/health"      "http://localhost:3004/health"          "2"
 http_check "analytics-service :3006/health"      "http://localhost:3006/health"          "2"
 
@@ -103,7 +103,7 @@ http_check "incident-service  :3003/incidents"   "http://localhost:3003/incident
 http_check "alert-service     :3005/device-tokens" "http://localhost:3005/device-tokens" ""
 
 # Edge service metrics endpoints
-http_check "video-ingestion   :8000/metrics"     "http://localhost:8000/metrics"         "2"
+http_check "video-ingestion   :8008/metrics"     "http://localhost:8008/metrics"         "2"
 http_check "monitoring-agent  :9101/metrics"     "http://localhost:9101/metrics"         "2"
 http_check "node-exporter     :9100/metrics"     "http://localhost:9100/metrics"         "2"
 
@@ -116,7 +116,7 @@ tcp_check "postgres (user)"      localhost 5435
 tcp_check "postgres (camera)"    localhost 5433
 tcp_check "postgres (incident)"  localhost 5434
 tcp_check "postgres (alert)"     localhost 5436
-tcp_check "timescaledb"          localhost 5437
+tcp_check "timescaledb"          localhost 5441
 tcp_check "edge-database"        localhost 5438
 tcp_check "redis"                localhost 6379
 tcp_check "edge-cache"           localhost 6380

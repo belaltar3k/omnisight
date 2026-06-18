@@ -17,7 +17,7 @@ async function bootstrap() {
   app.useGlobalFilters(new AllExceptionsFilter());
 
   const configService = app.get(ConfigService);
-  const port = configService.get<number>('CAMERA_PORT') || 3002;
+  const port = configService.get<number>('CAMERA_PORT') || 3012;
 
   await app.listen(port);
   console.log(`Camera Service running on port ${port}`);
