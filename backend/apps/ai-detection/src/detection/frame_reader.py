@@ -87,19 +87,24 @@ class RTSPFrameReader:
         self._thread = threading.Thread(target=self._capture_loop, daemon=True)
         self._thread.start()
 
+    def _open_cap(self) -> cv2.VideoCapture:
+        cap = cv2.VideoCapture(self.rtsp_url, cv2.CAP_FFMPEG)
+        # Keep only the latest decoded frame — avoids reading stale buffered frames
+        cap.set(cv2.CAP_PROP_BUFFERSIZE, 1)
+        return cap
+
     def _capture_loop(self):
         reconnect_delays = [1, 2, 4, 8, 16]
         attempt = 0
 
         while self._running:
             try:
-                self._cap = cv2.VideoCapture(self.rtsp_url, cv2.CAP_FFMPEG)
+                self._cap = self._open_cap()
                 if not self._cap.isOpened():
                     raise ConnectionError(f"Cannot open RTSP: {self.rtsp_url}")
 
                 logger.info("RTSP connected: %s for %s", self.rtsp_url, self.camera_id)
                 attempt = 0
-                sleep_time = 1.0 / (self.target_fps * 1.5)
 
                 while self._running and self._cap.isOpened():
                     ret, frame = self._cap.read()
@@ -108,7 +113,6 @@ class RTSPFrameReader:
                     resized = cv2.resize(frame, (self.width, self.height))
                     with self._lock:
                         self._latest_frame = resized
-                    time.sleep(sleep_time)
 
             except Exception as e:
                 logger.error("RTSP error for %s: %s", self.camera_id, e)

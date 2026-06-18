@@ -50,6 +50,9 @@ class Settings(BaseSettings):
     SMOOTHING_WINDOW: int = 5
     MIN_ANOMALY_DURATION: float = 2.0
     ANOMALY_COOLDOWN: float = 3.0
+    # Maximum time to stay in ANOMALOUS state before forcing COOLDOWN,
+    # even if the score never drops. Prevents perpetual-anomaly on looping content.
+    MAX_ANOMALY_DURATION: float = 30.0
 
     # --- Integration (use localhost when running natively) ---
     INCIDENT_SERVICE_URL: str = "http://localhost:3003"

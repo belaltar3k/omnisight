@@ -62,6 +62,7 @@ class CameraPipeline:
             dominance_weight=config.DOMINANCE_WEIGHT,
             min_anomaly_duration=config.MIN_ANOMALY_DURATION,
             cooldown_duration=config.ANOMALY_COOLDOWN,
+            max_anomaly_duration=config.MAX_ANOMALY_DURATION,
         )
         self.track_manager = TrackManager(cooldown_seconds=60.0)
 
@@ -75,6 +76,10 @@ class CameraPipeline:
         self._last_sent_track_id: Optional[str] = None
 
         self._per_camera_detectors: dict[str, StreamingDetector] = {}
+
+        self._latest_frame: Optional[np.ndarray] = None
+        self._latest_meta: dict = {}
+        self._frame_lock = threading.Lock()
 
     @property
     def status(self) -> str:
@@ -128,15 +133,17 @@ class CameraPipeline:
                 paan.start_audio_capture(self.rtsp_url)
 
         self._status = "processing"
-        sleep_interval = 1.0 / self.config.TARGET_FPS
+        target_interval = 1.0 / self.config.TARGET_FPS
         fps_timer = time.time()
         fps_frame_count = 0
 
         while self._running:
             try:
+                t0 = time.time()
+
                 frame = self.frame_reader.read()
                 if frame is None:
-                    time.sleep(0.1)
+                    time.sleep(0.01)
                     continue
 
                 self._process_frame(frame)
@@ -150,7 +157,11 @@ class CameraPipeline:
                     fps_frame_count = 0
                     fps_timer = time.time()
 
-                time.sleep(sleep_interval)
+                # Only sleep the time remaining in the target interval.
+                # If inference already took longer than target_interval, skip the sleep.
+                remaining = target_interval - (time.time() - t0)
+                if remaining > 0:
+                    time.sleep(remaining)
 
             except Exception as e:
                 logger.error("Pipeline error for %s: %s", self.camera_id, e, exc_info=True)
@@ -166,16 +177,82 @@ class CameraPipeline:
         """
         self._per_camera_detectors = self.model_manager.create_camera_detectors()
 
+    def get_stream_frame(self) -> Optional[bytes]:
+        import cv2
+        with self._frame_lock:
+            if self._latest_frame is None:
+                return None
+            frame = self._latest_frame.copy()
+            meta = dict(self._latest_meta)
+
+        score = meta.get("fusion_score", 0.0)
+        anomaly = meta.get("anomaly_active", False)
+        component_scores = meta.get("component_scores", {})
+        bboxes = meta.get("bboxes", {})
+
+        h, w = frame.shape[:2]
+
+        # border colour: red if anomalous, green otherwise
+        border_color = (0, 0, 220) if anomaly else (0, 180, 0)
+        cv2.rectangle(frame, (0, 0), (w - 1, h - 1), border_color, 6)
+
+        # fusion score bar along the top
+        bar_w = int(w * score)
+        bar_color = (0, 0, 220) if score > 0.55 else (0, 200, 80)
+        cv2.rectangle(frame, (0, 0), (bar_w, 8), bar_color, -1)
+        cv2.rectangle(frame, (0, 0), (w, 8), (60, 60, 60), 1)
+
+        # overlay text
+        def text(img, msg, y, color=(255, 255, 255)):
+            cv2.putText(img, msg, (10, y), cv2.FONT_HERSHEY_SIMPLEX, 0.55, (0, 0, 0), 3, cv2.LINE_AA)
+            cv2.putText(img, msg, (10, y), cv2.FONT_HERSHEY_SIMPLEX, 0.55, color,   1, cv2.LINE_AA)
+
+        state_label = "ANOMALY" if anomaly else "NORMAL"
+        state_color = (0, 0, 220) if anomaly else (0, 220, 0)
+        text(frame, f"Score: {score:.3f}  [{state_label}]", 35, state_color)
+
+        y = 58
+        for name, s in component_scores.items():
+            text(frame, f"  {name}: {s:.3f}", y)
+            y += 20
+
+        text(frame, f"FPS: {meta.get('fps', 0):.1f}  cam: {self.camera_id}", h - 12)
+
+        # skeleton bounding boxes (from crime_skelnet)
+        for track_id, xyxy in bboxes.items():
+            x1, y1, x2, y2 = int(xyxy[0]), int(xyxy[1]), int(xyxy[2]), int(xyxy[3])
+            cv2.rectangle(frame, (x1, y1), (x2, y2), (0, 200, 255), 2)
+            cv2.putText(frame, f"#{track_id}", (x1, y1 - 6),
+                        cv2.FONT_HERSHEY_SIMPLEX, 0.45, (0, 200, 255), 1, cv2.LINE_AA)
+
+        _, jpg = cv2.imencode(".jpg", frame, [cv2.IMWRITE_JPEG_QUALITY, 75])
+        return jpg.tobytes()
+
     def _process_frame(self, frame):
         timestamp = time.time()
+        detector_scores: dict[str, float] = {}
+        all_bboxes: dict[int, "np.ndarray"] = {}
 
         for name, detector in self._per_camera_detectors.items():
             try:
                 result = detector.process_frame(frame, self._frame_count, timestamp)
                 if result is not None:
                     self.fusion.push_score(name, result.score)
+                    detector_scores[name] = result.score
+                    if name == "crime_skelnet":
+                        all_bboxes.update(result.metadata.get("bboxes", {}))
             except Exception as e:
                 logger.error("Detector %s error on %s: %s", name, self.camera_id, e)
+
+        with self._frame_lock:
+            self._latest_frame = frame.copy()
+            self._latest_meta = {
+                "fusion_score": self._last_fused_score,
+                "anomaly_active": self.fusion.state.value != "normal",
+                "component_scores": detector_scores,
+                "bboxes": all_bboxes,
+                "fps": self._fps,
+            }
 
         if self._frame_count % self.config.FUSION_INTERVAL == 0:
             self._run_fusion(timestamp)
@@ -183,7 +260,15 @@ class CameraPipeline:
     def _run_fusion(self, timestamp: float):
         fused = self.fusion.fuse()
         self._last_fused_score = fused
+        prev_state = self.fusion.state
         state, event = self.fusion.update_state(timestamp)
+
+        # When leaving ANOMALOUS, reset the skelnet buffer so accumulated scores
+        # from the completed anomaly don't bleed into the next WARMING window.
+        if prev_state == AnomalyState.ANOMALOUS and state == AnomalyState.COOLDOWN:
+            skelnet = self._per_camera_detectors.get("crime_skelnet")
+            if skelnet and hasattr(skelnet, "reset"):
+                skelnet.reset()
 
         if event is not None and state == AnomalyState.ANOMALOUS:
             self._dispatch_incident(event, timestamp)

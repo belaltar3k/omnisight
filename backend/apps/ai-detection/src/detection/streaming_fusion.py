@@ -43,6 +43,7 @@ class StreamingFusionEngine:
         min_anomaly_duration: float = 2.0,
         cooldown_duration: float = 3.0,
         history_size: int = 120,
+        max_anomaly_duration: float = 30.0,
     ):
         self.weights = dict(weights)
         self.anomaly_threshold = anomaly_threshold
@@ -50,6 +51,7 @@ class StreamingFusionEngine:
         self.dominance_weight = dominance_weight
         self.min_anomaly_duration = min_anomaly_duration
         self.cooldown_duration = cooldown_duration
+        self.max_anomaly_duration = max_anomaly_duration
 
         self._score_histories: dict[str, deque[float]] = {}
         self._history_size = history_size
@@ -142,7 +144,15 @@ class StreamingFusionEngine:
         elif self._state == AnomalyState.ANOMALOUS:
             if self._current_event:
                 self._current_event.peak_score = max(self._current_event.peak_score, score)
-            if score < self.anomaly_threshold:
+            duration = timestamp - self._state_entered_at
+            if score < self.anomaly_threshold or duration >= self.max_anomaly_duration:
+                if duration >= self.max_anomaly_duration:
+                    logger.info(
+                        "Anomaly timed out after %.1fs (score=%.3f) — forcing COOLDOWN",
+                        duration, score,
+                    )
+                    # Flush the score accumulator so the smoothed score can decay
+                    self._score_accumulator.clear()
                 self._state = AnomalyState.COOLDOWN
                 self._state_entered_at = timestamp
 

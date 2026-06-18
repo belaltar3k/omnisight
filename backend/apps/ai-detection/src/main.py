@@ -10,6 +10,7 @@ from src.core.config import config
 from src.api.routes.health import router as health_router, init_health
 from src.api.routes.config_routes import router as config_router, init_config_routes
 from src.api.routes.cameras import router as cameras_router, init_cameras_routes
+from src.api.routes.stream_routes import router as stream_router, init_stream_routes
 from src.detection.incident_sender import IncidentSender
 from src.detection.model_manager import ModelManager
 from src.workers.worker_pool import WorkerPool
@@ -46,10 +47,12 @@ def create_app() -> FastAPI:
     init_health(model_manager, worker_pool)
     init_config_routes(config, model_manager, worker_pool)
     init_cameras_routes(worker_pool)
+    init_stream_routes(worker_pool)
 
     app.include_router(health_router)
     app.include_router(config_router)
     app.include_router(cameras_router)
+    app.include_router(stream_router)
 
     @app.on_event("startup")
     async def startup():
