@@ -49,11 +49,15 @@ export class AuthService {
 
     const passwordHash = await bcrypt.hash(dto.password, 10);
 
+    // Employee code is server-generated, never accepted from the client.
+    const employeeCode = await this.usersService.generateUniqueEmployeeCode();
+
     const user = await this.usersService.create({
       fullName: dto.fullName,
       email: dto.email,
       passwordHash,
       role: dto.role,
+      employeeCode,
     });
 
     return {
@@ -62,13 +66,20 @@ export class AuthService {
         id: user.id,
         fullName: user.fullName,
         email: user.email,
+        employeeCode: user.employeeCode,
+        role: user.role,
         status: user.status,
       },
     };
   }
 
   async login(dto: LoginDto) {
-    const user = await this.usersService.findByEmail(dto.email);
+    // Login accepts either an email or an employee code, plus the password.
+    const user = dto.email
+      ? await this.usersService.findByEmail(dto.email)
+      : dto.employeeCode
+        ? await this.usersService.findByEmployeeCode(dto.employeeCode)
+        : null;
 
     if (!user) {
       throw new UnauthorizedException('Invalid credentials');
@@ -96,6 +107,8 @@ export class AuthService {
         id: user.id,
         fullName: user.fullName,
         email: user.email,
+        employeeCode: user.employeeCode,
+        role: user.role,
         status: user.status,
       },
     };

@@ -1,0 +1,154 @@
+<div class="p-6 space-y-6 max-w-5xl">
+  @if (isLoading()) {
+    <div class="flex items-center justify-center h-48 text-text-secondary text-sm">Loading incident…</div>
+  } @else if (incident(); as inc) {
+    <!-- Breadcrumb -->
+    <div class="flex items-center gap-2 text-xs text-text-secondary">
+      <a routerLink="/dashboard" class="hover:text-white transition-colors">Home</a>
+      <span>›</span>
+      <a routerLink="/incidents" class="hover:text-white transition-colors">Incidents</a>
+      <span>›</span>
+      <span class="text-white font-mono">{{ inc.incidentId }}</span>
+    </div>
+
+    <!-- Header -->
+    <div class="flex items-start justify-between gap-4">
+      <div>
+        <h1 class="text-xl font-bold text-white font-mono">{{ inc.incidentId }}</h1>
+        <div class="flex items-center gap-2 mt-2 flex-wrap">
+          <app-status-badge [status]="inc.status" />
+          <app-priority-badge [priority]="inc.priority" />
+          <span class="text-xs text-text-secondary capitalize">{{ inc.crimeType }} · {{ inc.cameraId }}</span>
+          <span class="text-xs text-text-muted">{{ inc.incidentStartTime | date:'short' }}</span>
+        </div>
+      </div>
+      <div class="flex gap-2 shrink-0 flex-wrap">
+        <app-button message="Acknowledge" icon="check" type="button" [disabled]="!canAcknowledge(inc)" (click)="acknowledge()"></app-button>
+        <app-button message="Escalate" icon="arrow-up" type="button" [disabled]="!canEscalate(inc)" (click)="escalate()"></app-button>
+        <app-button [btnStyle]="BtnStylesEnum.BTN_BLUE" message="Resolve" icon="circle-check" type="button" [disabled]="!canResolve(inc)" (click)="resolve()"></app-button>
+        <app-button message="False Positive" icon="xmark" type="button" [disabled]="!canResolve(inc)" (click)="markFalsePositive()"></app-button>
+      </div>
+    </div>
+
+    <div class="grid grid-cols-3 gap-4">
+      <!-- Main panel -->
+      <div class="col-span-2 space-y-4">
+        <!-- Video placeholder -->
+        <div class="bg-panel border border-border-subtle rounded-lg p-4 space-y-4">
+          <h2 class="text-sm font-semibold text-white">Incident Clip</h2>
+          @if (inc.videoUrl) {
+            <video [src]="inc.videoUrl" controls class="w-full aspect-video rounded-lg bg-black"></video>
+          } @else {
+            <div class="w-full aspect-video bg-border-subtle rounded-lg flex items-center justify-center">
+              <div class="text-center text-text-muted">
+                <svg xmlns="http://www.w3.org/2000/svg" width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="mx-auto mb-2"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/></svg>
+                <p class="text-xs">No clip available</p>
+              </div>
+            </div>
+          }
+
+          <div class="grid grid-cols-2 gap-4">
+            <!-- Fusion scores -->
+            <div>
+              <p class="text-[10px] text-text-muted uppercase tracking-widest mb-2">Fusion Signals</p>
+              @for (sig of fusionBars(inc); track sig.name) {
+                <div class="flex items-center gap-2 mb-1.5">
+                  <span class="text-xs text-text-secondary w-12">{{ sig.name }}</span>
+                  <div class="flex-1 h-1.5 bg-border-subtle rounded-full overflow-hidden">
+                    <div class="h-full rounded-full bg-brand" [class]="confidenceWidth(sig.score)"></div>
+                  </div>
+                  <span class="text-xs text-white w-10 text-right">{{ sig.score | number:'1.2-2' }}</span>
+                </div>
+              }
+              @if (fusionBars(inc).length === 0) {
+                <p class="text-xs text-text-muted">No fusion data</p>
+              }
+            </div>
+
+            <!-- VLM output -->
+            <div>
+              <p class="text-[10px] text-text-muted uppercase tracking-widest mb-2">VLM Output</p>
+              @if (inc.vlmVerification; as vlm) {
+                <p class="text-xs text-text-secondary leading-relaxed bg-surface-well border border-border-subtle rounded p-2">
+                  {{ vlm.caption ?? 'No caption generated.' }}
+                </p>
+                @if (vlm.status === 'completed' && !vlm.isFalsePositive) {
+                  <p class="text-[10px] text-emerald-400 mt-2">
+                    ✓ Verified {{ vlm.verifiedCrimeType }} ({{ vlm.vlmConfidence | number:'1.2-2' }})
+                  </p>
+                } @else if (vlm.isFalsePositive) {
+                  <p class="text-[10px] text-yellow-400 mt-2">⚠ False positive detected</p>
+                } @else {
+                  <p class="text-[10px] text-text-muted mt-2">Status: {{ vlm.status }}</p>
+                }
+              } @else {
+                <p class="text-xs text-text-muted">No VLM data</p>
+              }
+            </div>
+          </div>
+        </div>
+
+        <!-- Incident metadata -->
+        <div class="bg-panel border border-border-subtle rounded-lg p-4">
+          <h2 class="text-sm font-semibold text-white mb-3">Details</h2>
+          <div class="grid grid-cols-2 gap-x-6 gap-y-2 text-xs">
+            <div class="flex justify-between border-b border-border-subtle py-1.5">
+              <span class="text-text-muted">Zone</span>
+              <span class="text-text-secondary font-mono">{{ inc.zoneId }}</span>
+            </div>
+            <div class="flex justify-between border-b border-border-subtle py-1.5">
+              <span class="text-text-muted">Camera</span>
+              <span class="text-text-secondary font-mono">{{ inc.cameraId }}</span>
+            </div>
+            <div class="flex justify-between border-b border-border-subtle py-1.5">
+              <span class="text-text-muted">Confidence</span>
+              <span class="text-white">{{ inc.confidence * 100 | number:'1.0-0' }}%</span>
+            </div>
+            <div class="flex justify-between border-b border-border-subtle py-1.5">
+              <span class="text-text-muted">Detected by</span>
+              <span class="text-text-secondary">{{ inc.detectedBy }}</span>
+            </div>
+            @if (inc.assignedTo) {
+              <div class="flex justify-between border-b border-border-subtle py-1.5">
+                <span class="text-text-muted">Assigned to</span>
+                <span class="text-text-secondary">{{ inc.assignedTo }}</span>
+              </div>
+            }
+            @if (inc.resolvedAt) {
+              <div class="flex justify-between border-b border-border-subtle py-1.5">
+                <span class="text-text-muted">Resolved at</span>
+                <span class="text-text-secondary">{{ inc.resolvedAt | date:'short' }}</span>
+              </div>
+            }
+          </div>
+        </div>
+      </div>
+
+      <!-- Timeline -->
+      <div class="bg-panel border border-border-subtle rounded-lg p-4">
+        <h2 class="text-sm font-semibold text-white mb-4">Timeline</h2>
+        @if (timeline().length > 0) {
+          <div class="space-y-3">
+            @for (event of timeline(); track $index) {
+              <div class="flex gap-3">
+                <div class="flex flex-col items-center">
+                  <div class="w-2 h-2 rounded-full mt-1 shrink-0" [class]="timelineEventColor(event.eventType)"></div>
+                  @if (!$last) { <div class="w-px flex-1 bg-border-subtle my-1"></div> }
+                </div>
+                <div class="flex-1 pb-2">
+                  <p class="text-xs font-medium text-white capitalize">{{ event.eventType.replace('_', ' ') }}</p>
+                  <p class="text-[10px] text-text-muted">{{ event.timestamp | date:'shortTime' }}</p>
+                  <p class="text-[10px] text-text-secondary mt-0.5">{{ event.description }}</p>
+                </div>
+              </div>
+            }
+          </div>
+        } @else {
+          <p class="text-xs text-text-muted">No timeline events yet.</p>
+        }
+      </div>
+    </div>
+  } @else {
+    <p class="text-text-secondary text-sm">Incident not found.</p>
+  }
+</div>

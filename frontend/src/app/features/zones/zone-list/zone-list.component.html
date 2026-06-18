@@ -1,0 +1,26 @@
+<div class="p-6 space-y-6">
+    <div class="flex items-center justify-between">
+        <div>
+            <h1 class="text-xl font-bold text-white">Zones</h1>
+            <p class="text-sm text-text-secondary mt-0.5">Security zones and monitoring areas</p>
+        </div>
+        <app-button message="Add Zone" icon="plus" [btnStyle]="BtnStylesEnum.BTN_BLUE" type="button" (click)="openAddZoneModal()"></app-button>
+    </div>
+    <div class="grid grid-cols-1 xl:grid-cols-2 gap-4">
+        @for (zone of (zones$ | async); track zone.id) {
+            <div class="bg-panel border border-border-subtle rounded-lg p-4 hover:border-brand/30 transition-colors">
+                <div class="flex-1 min-w-0 mb-3">
+                    <p class="text-sm font-semibold text-white">{{ zone.name }}</p>
+                    @if (zone.description) {
+                        <p class="text-xs text-text-muted mt-0.5">{{ zone.description }}</p>
+                    }
+                    <p class="text-[10px] text-text-muted mt-1 font-mono">{{ zone.id }}</p>
+                </div>
+                <div class="flex gap-2 pt-3 border-t border-border-subtle">
+                    <app-button message="Edit" icon="pen" type="button" (click)="openEditZoneModal(zone)"></app-button>
+                    <app-button message="Delete" icon="trash" type="button" (click)="deleteZone(zone)"></app-button>
+                </div>
+            </div>
+        }
+    </div>
+</div>

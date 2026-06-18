@@ -1,0 +1,26 @@
+<div class="flex flex-col h-full bg-surface-base">
+  <!-- Top row -->
+  <div class="flex flex-1 min-h-0 gap-[3px] p-[3px] pb-0">
+    <div class="w-[200px] shrink-0">
+      <app-device-list />
+    </div>
+    <div class="w-[240px] shrink-0">
+      <app-event-details />
+    </div>
+    <div class="flex-1 min-w-0">
+      <app-camera-feed label="Parking Garage 1"  imageType="parking" [showControls]="true" />
+    </div>
+  </div>
+  <!-- Bottom row -->
+  <div class="flex h-[46%] min-h-0 gap-[3px] p-[3px] pt-[3px]">
+    <div class="w-[200px] shrink-0">
+      <app-events-list />
+    </div>
+    <div class="flex-1 grid grid-cols-2 grid-rows-2 gap-[3px] min-w-0">
+      <app-camera-feed label="Checkin Area"      imageType="checkin"  [showClose]="true" />
+      <app-camera-feed label="Server Room A2"    imageType="server"   [showLivePercent]="true" />
+      <app-camera-feed label="Office Space 201"  imageType="office" />
+      <app-camera-feed label="Terminal C"        imageType="terminal" />
+    </div>
+  </div>
+</div>

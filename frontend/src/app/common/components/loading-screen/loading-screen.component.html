@@ -1,0 +1,25 @@
+@if (visible()) {
+  <div
+    class="fixed inset-0 z-[999] flex items-center justify-center bg-black transition-opacity delay-[0.6s] ease-in"
+    [class.opacity-100]="isOpaque()"
+    [class.opacity-0]="!isOpaque()"
+  >
+    <video #videoEl class="w-full h-full object-cover" autoplay muted loop playsinline>
+      <source src="/loading.mp4" type="video/mp4" />
+    </video>
+    <div class="absolute inset-0 pointer-events-none bg-[radial-gradient(ellipse_at_center,transparent_40%,rgba(0,0,0,0.6)_100%)]">
+    </div>
+    <div class="absolute bottom-8 left-1/2 -translate-x-1/2 flex items-center gap-3">
+      <div class="flex gap-1">
+        @for (dot of dots; track $index) {
+          <div
+            class="w-1.5 h-1.5 rounded-full bg-brand-dark"
+            [class.animate-pulse]="!reducedMotion()"
+            [style.animation-delay]="$index === 1 ? '0.2s' : $index === 2 ? '0.4s' : null"
+          ></div>
+        }
+      </div>
+      <span class="text-xs font-bold text-brand-dark tracking-widest uppercase">Loading</span>
+    </div>
+  </div>
+}

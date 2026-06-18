@@ -1,0 +1,12 @@
+<span
+  class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium border {{
+    config().classes
+  }}"
+>
+  @if (status() === "vlm_verifying") {
+    <span
+      class="w-1.5 h-1.5 rounded-full bg-purple-400 animate-spin border border-purple-300 border-t-transparent"
+    ></span>
+  }
+  {{ config().label }}
+</span>

@@ -1,0 +1,76 @@
+<div class="min-h-screen bg-surface-base flex items-center justify-center p-4">
+  <div
+    class="w-full max-w-sm bg-panel border border-border-subtle rounded-xl p-8 space-y-6"
+  >
+    <div class="text-center">
+      <div
+        class="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center mx-auto mb-4"
+      >
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          width="22"
+          height="22"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="white"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        >
+          <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+        </svg>
+      </div>
+      <h1 class="text-xl font-bold text-white">OmniSight</h1>
+      <p class="text-sm text-text-secondary mt-1">Sign in to your account</p>
+    </div>
+
+    <form class="space-y-4" [formGroup]="loginForm" (ngSubmit)="onLogin()">
+      <app-input
+        id="email"
+        label="Email"
+        placeholder="example@email.com"
+        type="email"
+        autocomplete="email"
+        formControlName="email"
+        [required]="true"
+      ></app-input>
+      @if (
+        loginForm.controls.email.touched && loginForm.controls.email.invalid
+      ) {
+        <p class="text-xs text-danger">Enter a valid email address.</p>
+      }
+
+      <app-input
+        id="password"
+        label="Password"
+        placeholder="********"
+        type="password"
+        autocomplete="current-password"
+        formControlName="password"
+        [required]="true"
+      ></app-input>
+      @if (
+        loginForm.controls.password.touched &&
+        loginForm.controls.password.invalid
+      ) {
+        <p class="text-xs text-danger">Password is required.</p>
+      }
+
+      <div class="flex justify-between py-1">
+        <app-anchor message="Forgot password?" link="/forgot-password"></app-anchor>
+        <app-anchor message="Don't have an account?" link="/register"></app-anchor>
+      </div>
+
+      <app-button
+        [btnStyle]="BtnStylesEnum.BTN_BLUE"
+        [message]="isLoading() ? 'Signing In...' : 'Sign In'"
+        icon="lock"
+        [disabled]="loginForm.invalid || isLoading()"
+      ></app-button>
+    </form>
+
+    <p class="text-center text-[10px] text-text-muted">
+      OmniSight AI Security System v2.0.0
+    </p>
+  </div>
+</div>

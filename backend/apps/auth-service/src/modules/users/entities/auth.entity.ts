@@ -27,6 +27,9 @@ export class User {
   @Column({ name: 'password_hash' })
   passwordHash!: string;
 
+  @Column({ name: 'employee_code', unique: true, nullable: true })
+  employeeCode?: string;
+
   @Column({
     type: 'enum',
     enum: UserStatus,

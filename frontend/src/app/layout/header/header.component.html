@@ -1,0 +1,42 @@
+<header class="h-12 shrink-0 flex items-center gap-4 px-4 bg-void border-b border-border-subtle z-10">
+  <!-- Hamburger -->
+  <app-button
+    (click)="toggleSidebar.emit()"
+    message=""
+    icon="bars"
+    type="button"
+  ></app-button>
+
+  <!-- Search -->
+  <div class="flex-1 max-w-md">
+    <app-input
+      id="global-search"
+      placeholder="Search incidents, cameras, zones..."
+    ></app-input>
+  </div>
+
+  <div class="flex-1"></div>
+
+  <!-- Connection status -->
+  <div class="flex items-center gap-1.5 text-[11px] text-emerald-400">
+    <span class="w-1.5 h-1.5 rounded-full bg-emerald-400" [class.animate-pulse]="!reducedMotion()"></span>
+    <span class="hidden sm:inline">Connected</span>
+  </div>
+
+  <!-- Notifications -->
+  <div class="relative">
+    <app-button message="" icon="bell" type="button"></app-button>
+    <span class="absolute -top-0.5 -right-0.5 w-4 h-4 bg-danger text-white text-[8px] font-bold rounded-full flex items-center justify-center pointer-events-none">5</span>
+  </div>
+
+  <!-- User + logout -->
+  <div class="flex items-center gap-2">
+    <div class="flex items-center gap-2 text-xs text-text-secondary">
+      <div class="w-6 h-6 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-[10px] font-bold text-white shrink-0">
+        {{ currentUserName().charAt(0).toUpperCase() }}
+      </div>
+      <span class="hidden sm:inline max-w-[100px] truncate">{{ currentUserName() }}</span>
+    </div>
+    <app-button message="Logout" icon="right-from-bracket" type="button" (click)="logout()"></app-button>
+  </div>
+</header>

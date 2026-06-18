@@ -1,0 +1,74 @@
+@if (isOpen()) {
+  <div class="fixed inset-0 z-50 flex items-center justify-center">
+    <div
+      class="absolute inset-0 bg-black/60 backdrop-blur-sm"
+      (click)="close()"
+    ></div>
+
+    <div
+      class="relative bg-panel border border-border-subtle rounded-xl shadow-2xl w-full max-w-md mx-4 p-6 max-h-[90vh] overflow-y-auto"
+      (click)="$event.stopPropagation()"
+    >
+      <div class="flex items-center justify-between mb-6">
+        <h2 class="text-lg font-bold text-white">{{ config()!.title }}</h2>
+        <button
+          type="button"
+          (click)="close()"
+          class="text-text-secondary hover:text-white transition-colors w-8 h-8 flex items-center justify-center rounded-lg hover:bg-border-subtle"
+        >
+          <i class="fas fa-times text-sm"></i>
+        </button>
+      </div>
+
+      <form [formGroup]="form()" (ngSubmit)="submit()" class="space-y-4">
+        @for (field of config()!.fields; track field.key) {
+          @if (field.type === 'select') {
+            <div class="flex flex-col gap-1.5">
+              <label class="text-xs text-text-secondary" [for]="field.key">
+                {{ field.label }}
+              </label>
+              <select
+                [id]="field.key"
+                [formControlName]="field.key"
+                class="w-full bg-surface-well border border-border-subtle rounded-md px-3 py-2 text-xs text-white focus:outline-none focus:border-brand transition-colors"
+              >
+                <option value="" disabled>
+                  {{ field.placeholder ?? 'Select…' }}
+                </option>
+                @for (opt of field.options; track opt.value) {
+                  <option [value]="opt.value">{{ opt.label }}</option>
+                }
+              </select>
+            </div>
+          } @else {
+            <app-input
+              [id]="field.key"
+              [label]="field.label"
+              [type]="field.type === 'textarea' ? 'text' : field.type"
+              [element]="field.type === 'textarea' ? 'textarea' : 'input'"
+              [placeholder]="field.placeholder ?? ''"
+              [required]="field.required ?? false"
+              [formControlName]="field.key"
+            />
+          }
+        }
+
+        <div class="flex gap-3 pt-2">
+          <app-button
+            message="Cancel"
+            icon="times"
+            type="button"
+            (click)="close()"
+          />
+          <app-button
+            [message]="config()!.submitLabel ?? 'Submit'"
+            icon="check"
+            [btnStyle]="BtnStylesEnum.BTN_BLUE"
+            [disabled]="isSubmitting()"
+            type="submit"
+          />
+        </div>
+      </form>
+    </div>
+  </div>
+}

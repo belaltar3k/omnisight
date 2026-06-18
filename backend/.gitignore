@@ -62,3 +62,6 @@ sentinel-backend.postman_collection.json
 full arch.md
 doc_of_service.md
 
+
+*.mp4
+*.db

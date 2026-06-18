@@ -30,7 +30,7 @@ export class CameraProxyController {
     configService: ConfigService,
   ) {
     this.cameraServiceUrl =
-      configService.get<string>('CAMERA_SERVICE_URL') ?? 'http://localhost:3002';
+      configService.get<string>('CAMERA_SERVICE_URL') ?? 'http://localhost:3012';
   }
 
   // ─── Helper: forward errors cleanly ───────────────────────────────────────

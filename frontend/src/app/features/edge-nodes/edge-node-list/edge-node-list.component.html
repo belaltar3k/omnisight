@@ -1,0 +1,46 @@
+<div class="p-6 space-y-6">
+  <div class="flex items-center justify-between">
+    <div>
+      <h1 class="text-xl font-bold text-white">Edge Nodes</h1>
+      <p class="text-sm text-text-secondary mt-0.5">On-premise AI processing infrastructure</p>
+    </div>
+    <app-button [btnStyle]="BtnStylesEnum.BTN_BLUE" message="Add Edge Node" icon="plus" type="button" (click)="openAddNodeModal()"></app-button>
+  </div>
+  <div class="grid grid-cols-1 xl:grid-cols-2 gap-4">
+    @for (node of nodes$ | async; track node.id) {
+      <div class="bg-panel border border-border-subtle rounded-lg p-5">
+        <div class="flex items-start justify-between mb-4">
+          <div>
+            <p class="text-sm font-bold text-white">{{ node.name }}</p>
+            <p class="text-xs text-text-muted mt-0.5 font-mono">{{ node.code }}</p>
+          </div>
+          <span
+            class="flex items-center gap-1 text-[10px] font-medium px-2 py-0.5 rounded-full"
+            [class]="node.status === 'online' ? 'bg-emerald-500/20 text-emerald-400' : node.status === 'maintenance' ? 'bg-yellow-500/20 text-yellow-400' : 'bg-danger/20 text-danger'"
+          >
+            <span
+              class="w-1.5 h-1.5 rounded-full"
+              [class.animate-pulse]="!reducedMotion()"
+              [class]="node.status === 'online' ? 'bg-emerald-400' : node.status === 'maintenance' ? 'bg-yellow-400' : 'bg-danger'"
+            ></span>
+            {{ node.status | titlecase }}
+          </span>
+        </div>
+        <div class="grid grid-cols-2 gap-3 text-xs mb-4">
+          <div class="bg-surface-well rounded p-2">
+            <p class="text-text-muted mb-1">IP Address</p>
+            <p class="text-white font-mono">{{ node.ipAddress }}</p>
+          </div>
+          <div class="bg-surface-well rounded p-2">
+            <p class="text-text-muted mb-1">Max Cameras</p>
+            <p class="text-white font-medium">{{ node.maxCameras }}</p>
+          </div>
+        </div>
+        <div class="flex gap-2 pt-3 border-t border-border-subtle">
+          <app-button message="Edit" icon="pen" type="button" (click)="openEditNodeModal(node)"></app-button>
+          <app-button message="Delete" icon="trash" type="button" (click)="deleteNode(node)"></app-button>
+        </div>
+      </div>
+    }
+  </div>
+</div>

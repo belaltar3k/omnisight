@@ -1,0 +1,101 @@
+<aside
+  class="h-full flex flex-col bg-void border-r border-border-subtle transition-all duration-300 shrink-0"
+  [class.w-sidebar-collapsed]="collapsed()"
+  [class.w-sidebar]="!collapsed()"
+>
+  <!-- Logo -->
+  <div
+    class="flex items-center gap-3 px-3 py-4 border-b border-border-subtle shrink-0 overflow-hidden"
+  >
+    <div
+      class="w-8 h-8 shrink-0 rounded-lg bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center"
+    >
+      <svg
+        xmlns="http://www.w3.org/2000/svg"
+        width="16"
+        height="16"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="white"
+        stroke-width="2"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+      >
+        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+      </svg>
+    </div>
+    @if (!collapsed()) {
+      <div class="overflow-hidden">
+        <p class="text-sm font-bold text-white whitespace-nowrap">OmniSight</p>
+        <p class="text-[10px] text-text-muted whitespace-nowrap">
+          AI Security System
+        </p>
+      </div>
+    }
+  </div>
+
+  <!-- Nav -->
+  <nav class="flex-1 overflow-y-auto overflow-x-hidden py-3 space-y-4">
+    @for (section of sections(); track section.title) {
+      <div>
+        @if (!collapsed()) {
+          <p
+            class="px-3 mb-1 text-[9px] font-bold uppercase tracking-widest text-text-muted"
+          >
+            {{ section.title }}
+          </p>
+        }
+        @for (item of section.items; track item.route) {
+          <a
+            [routerLink]="item.route"
+            routerLinkActive="bg-brand/20 text-brand border-l-2 border-brand"
+            [routerLinkActiveOptions]="{ exact: item.route === '/dashboard' }"
+            class="flex items-center gap-3 px-3 py-2 mx-1 rounded-md text-text-secondary hover:text-white hover:bg-border-subtle transition-colors text-xs font-medium group relative"
+            [class.justify-center]="collapsed()"
+            [title]="collapsed() ? item.label : ''"
+          >
+            <span
+              class="shrink-0 text-base leading-none"
+              [innerHTML]="item.icon"
+            ></span>
+            @if (!collapsed()) {
+              <span class="flex-1 whitespace-nowrap">{{ item.label }}</span>
+              @if (item.badge) {
+                <span
+                  class="bg-danger text-white text-[9px] font-bold px-1.5 py-0.5 rounded-full leading-none"
+                >
+                  {{ item.badge }}
+                </span>
+              }
+            } @else if (item.badge) {
+              <span
+                class="absolute top-1 right-1 w-2 h-2 bg-danger rounded-full"
+              ></span>
+            }
+          </a>
+        }
+      </div>
+    }
+  </nav>
+
+  <!-- Bottom -->
+  <div class="border-t border-border-subtle p-3 shrink-0">
+    <div class="flex items-center gap-2 overflow-hidden">
+      <div
+        class="w-7 h-7 shrink-0 rounded-full bg-gradient-to-br from-purple-500 to-blue-600 flex items-center justify-center text-[10px] font-bold text-white"
+      >
+        AV
+      </div>
+      @if (!collapsed()) {
+        <div class="overflow-hidden">
+          <p class="text-xs font-medium text-white whitespace-nowrap">
+            Admin User
+          </p>
+          <p class="text-[10px] text-text-muted whitespace-nowrap">
+            Administrator
+          </p>
+        </div>
+      }
+    </div>
+  </div>
+</aside>
