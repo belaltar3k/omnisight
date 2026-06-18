@@ -1,4 +1,4 @@
-FROM python:3.11-slim
+FROM pytorch/pytorch:2.4.0-cuda12.4-cudnn9-runtime
 
 RUN apt-get update && apt-get install -y \
     libgl1 libglib2.0-0 ffmpeg \
@@ -7,7 +7,8 @@ RUN apt-get update && apt-get install -y \
 WORKDIR /app
 
 COPY backend/apps/ai-detection/requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+RUN --mount=type=cache,target=/root/.cache/pip \
+    pip install -r requirements.txt
 
 # Copy AI components and pipeline (reuse research code)
 COPY ai/components/ /app/ai/components/

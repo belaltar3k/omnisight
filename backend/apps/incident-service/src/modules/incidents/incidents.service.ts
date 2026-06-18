@@ -147,7 +147,7 @@ export class IncidentsService implements OnModuleInit {
         continue;
       }
 
-      if (detection.confidence < 0.75) {
+      if (detection.confidence < 0.65) {
         this.logger.debug(
           `Skipping low-confidence detection trackId=${detection.trackId} confidence=${detection.confidence}`,
         );
