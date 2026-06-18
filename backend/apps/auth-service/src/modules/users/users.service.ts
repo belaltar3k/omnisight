@@ -16,6 +16,27 @@ export class UsersService {
     });
   }
 
+  async findByEmployeeCode(employeeCode: string) {
+    return this.userRepository.findOne({
+      where: { employeeCode },
+    });
+  }
+
+  // Generates a unique employee code (e.g. EMP-482917). Retries on the
+  // off-chance of a random collision; the DB unique constraint is the backstop.
+  async generateUniqueEmployeeCode(): Promise<string> {
+    for (let attempt = 0; attempt < 10; attempt++) {
+      const code = `EMP-${Math.floor(100000 + Math.random() * 900000)}`;
+      const exists = await this.userRepository.findOne({
+        where: { employeeCode: code },
+      });
+      if (!exists) {
+        return code;
+      }
+    }
+    throw new Error('Failed to generate a unique employee code');
+  }
+
   async create(data: Partial<User>) {
     const user = this.userRepository.create(data);
     return this.userRepository.save(user);

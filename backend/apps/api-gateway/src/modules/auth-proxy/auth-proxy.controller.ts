@@ -69,7 +69,7 @@ await firstValueFrom(
         shiftName:        dto.shiftName,
         emergencyContact: dto.emergencyContact,
         emergencyPhone:   dto.emergencyPhone,
-        employeeCode:     dto.employeeCode,
+        employeeCode:     authUser.user.employeeCode, // server-generated, not from client
         address:          dto.address,
       },
       {
@@ -105,6 +105,7 @@ await firstValueFrom(
     return {
       success: true,
       message: 'Account created successfully',
+      employeeCode: authUser.user.employeeCode, // server-generated login code
       user: authUser.user,
     };
   }
