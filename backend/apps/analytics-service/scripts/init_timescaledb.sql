@@ -1,7 +1,8 @@
 -- scripts/init_timescaledb.sql
 
--- Enable TimescaleDB extension
+-- Enable extensions
 CREATE EXTENSION IF NOT EXISTS timescaledb;
+CREATE EXTENSION IF NOT EXISTS vector;
 
 -- 1. Create Incident Metrics Table
 CREATE TABLE IF NOT EXISTS incident_metrics (
@@ -85,6 +86,7 @@ CREATE TABLE IF NOT EXISTS vlm_analyses (
 );
 
 SELECT create_hypertable('vlm_analyses', 'timestamp', chunk_time_interval => INTERVAL '1 day', if_not_exists => TRUE);
+ALTER TABLE vlm_analyses ADD COLUMN IF NOT EXISTS embedding vector(384);
 
 -- Create some helpful indexes for faster querying
 CREATE INDEX IF NOT EXISTS ix_incident_metrics_crime_type ON incident_metrics (crime_type, timestamp DESC);

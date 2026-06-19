@@ -49,6 +49,19 @@ def ingest(payload: VLMIngestPayload, db: Session = Depends(get_db)):
     )
     db.add(row)
     db.commit()
+
+    # Compute and store embedding in background thread (non-blocking)
+    import concurrent.futures, threading
+    def _embed():
+        from app.services.embedding_service import embed_and_store
+        from app.db.session import SessionLocal
+        bg_db = SessionLocal()
+        try:
+            embed_and_store(row, bg_db)
+        finally:
+            bg_db.close()
+    threading.Thread(target=_embed, daemon=True).start()
+
     return {"ok": True, "id": str(row.id)}
 
 

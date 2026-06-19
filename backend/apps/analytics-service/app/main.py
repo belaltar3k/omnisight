@@ -7,7 +7,7 @@ from app.core.config import settings
 from app.core.logging import logger
 
 # Routers
-from app.api.v1 import dashboard, incidents, cameras, heatmap, reports, websockets, surveillance, vlm
+from app.api.v1 import dashboard, incidents, cameras, heatmap, reports, websockets, surveillance, vlm, chatbot
 
 # Async messaging and DB connections
 from app.messaging.kafka_consumer import start_kafka_consumer
@@ -40,6 +40,7 @@ def create_app() -> FastAPI:
     app.include_router(reports.router, prefix=api_prefix)
     app.include_router(surveillance.router, prefix=api_prefix)
     app.include_router(vlm.router, prefix=api_prefix)
+    app.include_router(chatbot.router, prefix=api_prefix)
 
     # Register WebSocket Router (Does not need the /analytics prefix)
     app.include_router(websockets.router, prefix=settings.API_V1_STR)
@@ -51,12 +52,24 @@ app = create_app()
 @app.on_event("startup")
 async def startup_event():
     logger.info(f"Starting up {settings.PROJECT_NAME}...")
-    
+
     # 1. Verify Redis connection
     await check_redis_connection()
-    
+
     # 2. Start Kafka Consumer loop in the background
     asyncio.create_task(start_kafka_consumer())
+
+    # 3. Pre-warm embedding model in a thread so first chat request is fast
+    import concurrent.futures
+    def _warm():
+        try:
+            from app.services.embedding_service import embed_text
+            embed_text("warming up embedding model")
+            logger.info("Embedding model ready.")
+        except Exception as e:
+            logger.warning("Embedding model warm-up failed: %s", e)
+    executor = concurrent.futures.ThreadPoolExecutor(max_workers=1)
+    asyncio.get_event_loop().run_in_executor(executor, _warm)
 
 @app.on_event("shutdown")
 async def shutdown_event():

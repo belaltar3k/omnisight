@@ -19,3 +19,8 @@ async def check_redis_connection():
         logger.info("Successfully connected to Redis.")
     except Exception as e:
         logger.error(f"Redis connection failed: {e}")
+
+
+async def get_redis_client():
+    """Return the shared async Redis client."""
+    return redis_client

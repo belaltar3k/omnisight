@@ -60,6 +60,20 @@ export class IncidentsController {
   }
 
   // ══════════════════════════════════════════════════════════════════════════
+  // INTERNAL — service-to-service, protected by edge secret (no JWT)
+  // ══════════════════════════════════════════════════════════════════════════
+
+  @Get('internal/incidents')
+  @HttpCode(HttpStatus.OK)
+  async internalFindAll(
+    @Query() filters: FilterIncidentsDto,
+    @Headers('x-edge-secret') secret: string,
+  ) {
+    this.incidentsService.verifyEdgeSecret(secret);
+    return this.incidentsService.findAll(filters);
+  }
+
+  // ══════════════════════════════════════════════════════════════════════════
   // CRUD — JWT protected
   // ══════════════════════════════════════════════════════════════════════════
 
