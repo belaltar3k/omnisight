@@ -56,7 +56,7 @@ export class UserProxyController {
   @Roles(UserRole.ADMIN, UserRole.SUPERVISOR)
   async createProfile(@Body() body: any) {
     try {
-      const response = await firstValueFrom(
+      const response: any = await firstValueFrom(
         this.httpService
           .post(`${this.userServiceUrl}/profiles`, body, {
             headers: { 'x-internal-secret': this.internalSecret },
@@ -75,7 +75,7 @@ export class UserProxyController {
   @Roles(UserRole.ADMIN)
   async getProfiles(@Headers('authorization') authorization: string) {
     try {
-      const response = await firstValueFrom(
+      const response: any = await firstValueFrom(
         this.httpService
           .get(`${this.userServiceUrl}/profiles`, this.authHeaders(authorization))
           .pipe(timeout(5000)),
@@ -96,7 +96,7 @@ export class UserProxyController {
   ) {
     this.assertSelfOrAdmin(req, authUserId);
     try {
-      const response = await firstValueFrom(
+      const response: any = await firstValueFrom(
         this.httpService
           .get(
             `${this.userServiceUrl}/profiles/auth/${authUserId}/full`,
@@ -119,7 +119,7 @@ export class UserProxyController {
   ) {
     this.assertSelfOrAdmin(req, authUserId);
     try {
-      const response = await firstValueFrom(
+      const response: any = await firstValueFrom(
         this.httpService
           .get(
             `${this.userServiceUrl}/profiles/auth/${authUserId}`,
@@ -143,11 +143,34 @@ export class UserProxyController {
   ) {
     this.assertSelfOrAdmin(req, authUserId);
     try {
-      const response = await firstValueFrom(
+      const response: any = await firstValueFrom(
         this.httpService
           .patch(
             `${this.userServiceUrl}/profiles/auth/${authUserId}`,
             body,
+            this.authHeaders(authorization),
+          )
+          .pipe(timeout(5000)),
+      );
+      return response.data;
+    } catch (error: any) {
+      this.handleError(error);
+    }
+  }
+
+  // DELETE /api/v1/profiles/auth/:authUserId
+  @Delete('profiles/auth/:authUserId')
+  @UseGuards(RolesGuard)
+  @Roles(UserRole.ADMIN)
+  async deleteProfile(
+    @Param('authUserId') authUserId: string,
+    @Headers('authorization') authorization: string,
+  ) {
+    try {
+      const response: any = await firstValueFrom(
+        this.httpService
+          .delete(
+            `${this.userServiceUrl}/profiles/auth/${authUserId}`,
             this.authHeaders(authorization),
           )
           .pipe(timeout(5000)),
@@ -171,7 +194,7 @@ export class UserProxyController {
     @Headers('authorization') authorization: string,
   ) {
     try {
-      const response = await firstValueFrom(
+      const response: any = await firstValueFrom(
         this.httpService
           .post(
             `${this.userServiceUrl}/zone-assignments`,
@@ -192,7 +215,7 @@ export class UserProxyController {
   @Roles(UserRole.ADMIN)
   async getZoneAssignments(@Headers('authorization') authorization: string) {
     try {
-      const response = await firstValueFrom(
+      const response: any = await firstValueFrom(
         this.httpService
           .get(
             `${this.userServiceUrl}/zone-assignments`,
@@ -215,7 +238,7 @@ export class UserProxyController {
     @Headers('authorization') authorization: string,
   ) {
     try {
-      const response = await firstValueFrom(
+      const response: any = await firstValueFrom(
         this.httpService
           .get(
             `${this.userServiceUrl}/zone-assignments/user/${authUserId}`,
@@ -239,7 +262,7 @@ export class UserProxyController {
     @Headers('authorization') authorization: string,
   ) {
     try {
-      const response = await firstValueFrom(
+      const response: any = await firstValueFrom(
         this.httpService
           .get(
             `${this.userServiceUrl}/zone-assignments/zone/${zoneId}/users`,
@@ -262,7 +285,7 @@ export class UserProxyController {
     @Headers('authorization') authorization: string,
   ) {
     try {
-      const response = await firstValueFrom(
+      const response: any = await firstValueFrom(
         this.httpService
           .get(
             `${this.userServiceUrl}/zone-assignments/zone/${zoneId}`,
@@ -286,7 +309,7 @@ export class UserProxyController {
     @Headers('authorization') authorization: string,
   ) {
     try {
-      const response = await firstValueFrom(
+      const response: any = await firstValueFrom(
         this.httpService
           .patch(
             `${this.userServiceUrl}/zone-assignments/${id}/reassign`,
@@ -312,7 +335,7 @@ export class UserProxyController {
     @Headers('authorization') authorization: string,
   ) {
     try {
-      const response = await firstValueFrom(
+      const response: any = await firstValueFrom(
         this.httpService
           .delete(
             `${this.userServiceUrl}/zone-assignments/user/${authUserId}/zone/${zoneId}`,
@@ -335,7 +358,7 @@ export class UserProxyController {
     @Headers('authorization') authorization: string,
   ) {
     try {
-      const response = await firstValueFrom(
+      const response: any = await firstValueFrom(
         this.httpService
           .delete(
             `${this.userServiceUrl}/zone-assignments/${id}`,

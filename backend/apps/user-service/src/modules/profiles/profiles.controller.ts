@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   Param,
   Patch,
@@ -49,7 +50,8 @@ create(
   @UseGuards(JwtAuthGuard)
   findFullProfile(@Param('authUserId') authUserId: string, @Req() req: any) {
     this.assertSelfOrAdmin(req, authUserId);
-    return this.profilesService.findFullProfile(authUserId);
+    // Forward the caller's JWT so the internal zone lookup passes camera-service's auth guard
+    return this.profilesService.findFullProfile(authUserId, req.headers.authorization);
   }
 
   // ─── Get by authUserId ───────────────────────────────────────────────────
@@ -74,6 +76,15 @@ create(
   ) {
     this.assertSelfOrAdmin(req, authUserId);
     return this.profilesService.update(authUserId, dto);
+  }
+
+  // ─── Delete ──────────────────────────────────────────────────────────────
+  // ✅ Admin only — deletes profile + cascades to auth-service
+  @Delete('auth/:authUserId')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.ADMIN)
+  remove(@Param('authUserId') authUserId: string) {
+    return this.profilesService.remove(authUserId);
   }
 
   // ─── Helper ──────────────────────────────────────────────────────────────

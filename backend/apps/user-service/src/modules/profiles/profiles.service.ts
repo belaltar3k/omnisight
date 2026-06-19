@@ -114,9 +114,29 @@ export class ProfilesService {
     return this.profileRepository.save(profile);
   }
 
+  // ─── Delete ────────────────────────────────────────────────────────────────
+
+  async remove(authUserId: string) {
+    const profile = await this.findByAuthUserId(authUserId);
+    await this.profileRepository.remove(profile);
+
+    try {
+      await firstValueFrom(
+        this.httpService
+          .delete(`${this.authServiceUrl}/auth/users/${authUserId}/internal`)
+          .pipe(timeout(5000)),
+      );
+    } catch {
+      // Profile is already deleted — log and continue; auth cleanup may need manual intervention
+      console.error('AUTH_DELETE_FAIL', { authUserId });
+    }
+
+    return { message: 'User deleted successfully' };
+  }
+
   // ─── Full Profile (profile + zone assignments enriched) ───────────────────
 
-  async findFullProfile(authUserId: string) {
+  async findFullProfile(authUserId: string, authHeader?: string) {
     const profile = await this.findByAuthUserId(authUserId);
 
     const assignments = await this.zoneAssignmentRepository.find({
@@ -130,7 +150,10 @@ export class ProfilesService {
         try {
           const response = await firstValueFrom(
             this.httpService
-              .get(`${this.cameraServiceUrl}/zones/${assignment.zoneId}`)
+              .get(`${this.cameraServiceUrl}/zones/${assignment.zoneId}`, {
+                // Forward the caller's JWT — camera-service's zones routes require auth
+                headers: authHeader ? { authorization: authHeader } : undefined,
+              })
               .pipe(timeout(5000)),
           );
 
@@ -143,7 +166,13 @@ export class ProfilesService {
             status: 'active',
             zone: response.data,
           };
-        } catch {
+        } catch (e: any) {
+          console.error('ZONE_FETCH_FAIL', {
+            url: `${this.cameraServiceUrl}/zones/${assignment.zoneId}`,
+            authHeaderPrefix: authHeader ? authHeader.slice(0, 20) : '(none)',
+            status: e?.response?.status,
+            message: e?.message,
+          });
           return {
             id: assignment.id,
             authUserId: assignment.authUserId,
