@@ -47,11 +47,12 @@ def ingest(payload: VLMIngestPayload, db: Session = Depends(get_db)):
         video_url=payload.video_url or None,
         full_json=payload.full_json,
     )
+    row_id = row.id  # capture before commit expires the object
     db.add(row)
     db.commit()
 
     # Compute and store embedding in background thread (non-blocking)
-    import concurrent.futures, threading
+    import threading
     def _embed():
         from app.services.embedding_service import embed_and_store
         from app.db.session import SessionLocal
@@ -62,7 +63,7 @@ def ingest(payload: VLMIngestPayload, db: Session = Depends(get_db)):
             bg_db.close()
     threading.Thread(target=_embed, daemon=True).start()
 
-    return {"ok": True, "id": str(row.id)}
+    return {"ok": True, "id": str(row_id)}
 
 
 # ── Query ────────────────────────────────────────────────────────────────────
