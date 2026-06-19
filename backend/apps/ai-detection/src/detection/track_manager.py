@@ -77,12 +77,7 @@ class TrackManager:
         weapon_detected: bool = False,
         skelnet_score: float = 0.0,
     ) -> str:
-        if weapon_detected:
-            return "weapon"
-        if videomae_class and videomae_class != "Normal":
-            return CRIME_CLASS_MAP.get(videomae_class, "abnormal")
-        if skelnet_score > 0.7:
-            return "assault"
+        # VLM classifies crime type asynchronously; initial incident is always "abnormal"
         return "abnormal"
 
     @staticmethod

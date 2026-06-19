@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import collections
+import concurrent.futures
 import logging
 import threading
 import time
@@ -14,6 +16,7 @@ from src.detection.streaming_adapters.paan_streaming import PAANStreamingDetecto
 from src.detection.streaming_fusion import AnomalyState, StreamingFusionEngine
 from src.detection.track_manager import TrackManager
 from src.detection.surveillance_reporter import SurveillanceReporter
+from src.detection.vlm_client import VLMClient
 
 logger = logging.getLogger(__name__)
 
@@ -88,6 +91,17 @@ class CameraPipeline:
             interval=30.0,
         )
 
+        # Frame buffer: collect frames during WARMING + ANOMALOUS for VLM analysis
+        # maxlen caps memory; at 15 fps this is ~8 seconds of footage
+        self._frame_buffer: collections.deque = collections.deque(maxlen=120)
+
+        self._vlm_client = VLMClient(config) if config.VLM_URL else None
+        self._vlm_executor: Optional[concurrent.futures.ThreadPoolExecutor] = (
+            concurrent.futures.ThreadPoolExecutor(max_workers=2, thread_name_prefix="vlm")
+            if self._vlm_client
+            else None
+        )
+
     @property
     def status(self) -> str:
         return self._status
@@ -125,6 +139,8 @@ class CameraPipeline:
             if hasattr(det, "stop"):
                 det.stop()
         self._sa_reporter.stop()
+        if self._vlm_executor:
+            self._vlm_executor.shutdown(wait=False)
         self._status = "stopped"
 
     def _run(self):
@@ -267,6 +283,10 @@ class CameraPipeline:
                 "fps": self._fps,
             }
 
+        # Buffer frames during suspicious/anomalous states for VLM clip
+        if self._vlm_client and self.fusion.state in (AnomalyState.WARMING, AnomalyState.ANOMALOUS):
+            self._frame_buffer.append(frame)
+
         if self._frame_count % self.config.FUSION_INTERVAL == 0:
             self._run_fusion(timestamp)
 
@@ -345,8 +365,19 @@ class CameraPipeline:
             self._total_detections_sent += 1
             self._last_sent_track_id = track_id
 
-            self.incident_sender.send_classify(
-                track_id=track_id,
-                crime_type=crime_type,
-                confidence=confidence,
-            )
+            if self._vlm_client and self._vlm_executor:
+                # VLM runs in background: classifies crime type, uploads clip, updates incident
+                clip_frames = list(self._frame_buffer)
+                self._frame_buffer.clear()
+                self._vlm_executor.submit(
+                    self._vlm_client.analyze_and_update,
+                    frames=clip_frames,
+                    track_id=track_id,
+                    camera_id=self.camera_id,
+                    zone="",
+                    fusion_score=event.peak_score,
+                    incident_sender=self.incident_sender,
+                )
+            else:
+                # No VLM configured: keep crime_type=abnormal, no reclassification
+                self._frame_buffer.clear()

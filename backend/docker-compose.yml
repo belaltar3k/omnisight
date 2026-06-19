@@ -475,6 +475,14 @@ services:
       ANALYTICS_SERVICE_URL: ${AI_ANALYTICS_SERVICE_URL:-http://analytics-service:3006}
       EDGE_SYNC_SECRET: ${EDGE_SYNC_SECRET}
       EDGE_NODE_CODE: ${EDGE_NODE_ID:-edge-node-01}
+      VLM_URL: ${AI_VLM_URL:-}
+      VLM_FRAMES_SAMPLE: ${AI_VLM_FRAMES_SAMPLE:-16}
+      VLM_TIMEOUT: ${AI_VLM_TIMEOUT:-120.0}
+      S3_ENABLED: ${AI_S3_ENABLED:-false}
+      S3_BUCKET: ${AI_S3_BUCKET:-omnisight-bucket-storage}
+      S3_REGION: ${AI_S3_REGION:-eu-north-1}
+      AWS_ACCESS_KEY_ID: ${AI_AWS_ACCESS_KEY_ID:-}
+      AWS_SECRET_ACCESS_KEY: ${AI_AWS_SECRET_ACCESS_KEY:-}
       REDIS_HOST: edge-cache
       REDIS_PORT: 6379
       RTSP_URLS: ${RTSP_URLS:-[]}

@@ -66,7 +66,30 @@ CREATE TABLE IF NOT EXISTS surveillance_metrics (
 
 SELECT create_hypertable('surveillance_metrics', 'timestamp', chunk_time_interval => INTERVAL '1 day', if_not_exists => TRUE);
 
+-- 5. Create VLM Analysis Table (stores Qwen2.5-VL-7B analysis results per anomaly event)
+CREATE TABLE IF NOT EXISTS vlm_analyses (
+    id UUID DEFAULT gen_random_uuid(),
+    timestamp TIMESTAMPTZ NOT NULL,
+    track_id VARCHAR(255) NOT NULL,
+    camera_id VARCHAR(100) NOT NULL,
+    zone VARCHAR(255),
+    crime_type VARCHAR(50) NOT NULL DEFAULT 'abnormal',
+    vlm_score VARCHAR(20),
+    people_count INTEGER DEFAULT 0,
+    caption TEXT,
+    events JSONB DEFAULT '[]',
+    evidence JSONB DEFAULT '[]',
+    video_url TEXT,
+    full_json JSONB DEFAULT '{}',
+    PRIMARY KEY (id, timestamp)
+);
+
+SELECT create_hypertable('vlm_analyses', 'timestamp', chunk_time_interval => INTERVAL '1 day', if_not_exists => TRUE);
+
 -- Create some helpful indexes for faster querying
 CREATE INDEX IF NOT EXISTS ix_incident_metrics_crime_type ON incident_metrics (crime_type, timestamp DESC);
 CREATE INDEX IF NOT EXISTS ix_incident_metrics_zone_id ON incident_metrics (zone_id, timestamp DESC);
 CREATE INDEX IF NOT EXISTS ix_surveillance_metrics_camera_id ON surveillance_metrics (camera_id, timestamp DESC);
+CREATE INDEX IF NOT EXISTS ix_vlm_analyses_camera_id ON vlm_analyses (camera_id, timestamp DESC);
+CREATE INDEX IF NOT EXISTS ix_vlm_analyses_crime_type ON vlm_analyses (crime_type, timestamp DESC);
+CREATE INDEX IF NOT EXISTS ix_vlm_analyses_track_id ON vlm_analyses (track_id);

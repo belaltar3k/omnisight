@@ -60,6 +60,18 @@ class Settings(BaseSettings):
     EDGE_SYNC_SECRET: str = ""
     EDGE_NODE_CODE: str = "edge-node-01"
 
+    # --- VLM ---
+    VLM_URL: str = ""                # e.g. http://ec2-13-60-2-232.eu-north-1.compute.amazonaws.com
+    VLM_FRAMES_SAMPLE: int = 16      # how many frames to sample from the anomaly clip
+    VLM_TIMEOUT: float = 120.0       # Qwen can be slow on first call
+
+    # --- S3 clip storage ---
+    S3_ENABLED: bool = False
+    S3_BUCKET: str = "omnisight-clips"
+    S3_REGION: str = "eu-north-1"
+    AWS_ACCESS_KEY_ID: str = ""
+    AWS_SECRET_ACCESS_KEY: str = ""
+
     # --- Redis (camera discovery from video-ingestion) ---
     REDIS_HOST: str = "localhost"
     REDIS_PORT: int = 6380
