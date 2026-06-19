@@ -157,15 +157,12 @@ class StreamingFusionEngine:
                 self._state_entered_at = timestamp
 
         elif self._state == AnomalyState.COOLDOWN:
-            if score >= self.anomaly_threshold:
-                self._state = AnomalyState.ANOMALOUS
-            else:
-                duration = timestamp - self._state_entered_at
-                if duration >= self.cooldown_duration:
-                    if self._current_event:
-                        self._current_event.end_time = timestamp
-                    self._state = AnomalyState.NORMAL
-                    self._current_event = None
+            duration = timestamp - self._state_entered_at
+            if duration >= self.cooldown_duration:
+                if self._current_event:
+                    self._current_event.end_time = timestamp
+                self._state = AnomalyState.NORMAL
+                self._current_event = None
 
         return self._state, event
 

@@ -52,6 +52,21 @@ CREATE TABLE IF NOT EXISTS response_time_metrics (
 
 SELECT create_hypertable('response_time_metrics', 'timestamp', chunk_time_interval => INTERVAL '1 day', if_not_exists => TRUE);
 
+-- 4. Create Surveillance Metrics Table (from surveillance_analytics module)
+CREATE TABLE IF NOT EXISTS surveillance_metrics (
+    id UUID DEFAULT gen_random_uuid(),
+    timestamp TIMESTAMPTZ NOT NULL,
+    camera_id VARCHAR(100) NOT NULL,
+    persons INTEGER DEFAULT 0,
+    vehicles INTEGER DEFAULT 0,
+    total_alerts INTEGER DEFAULT 0,
+    modules JSONB DEFAULT '{}',
+    PRIMARY KEY (id, timestamp)
+);
+
+SELECT create_hypertable('surveillance_metrics', 'timestamp', chunk_time_interval => INTERVAL '1 day', if_not_exists => TRUE);
+
 -- Create some helpful indexes for faster querying
 CREATE INDEX IF NOT EXISTS ix_incident_metrics_crime_type ON incident_metrics (crime_type, timestamp DESC);
 CREATE INDEX IF NOT EXISTS ix_incident_metrics_zone_id ON incident_metrics (zone_id, timestamp DESC);
+CREATE INDEX IF NOT EXISTS ix_surveillance_metrics_camera_id ON surveillance_metrics (camera_id, timestamp DESC);

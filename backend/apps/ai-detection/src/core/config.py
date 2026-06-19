@@ -56,6 +56,7 @@ class Settings(BaseSettings):
 
     # --- Integration (use localhost when running natively) ---
     INCIDENT_SERVICE_URL: str = "http://localhost:3003"
+    ANALYTICS_SERVICE_URL: str = "http://localhost:3006"
     EDGE_SYNC_SECRET: str = ""
     EDGE_NODE_CODE: str = "edge-node-01"
 

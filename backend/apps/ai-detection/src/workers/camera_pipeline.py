@@ -13,6 +13,7 @@ from src.detection.streaming_adapters.base import StreamingDetector
 from src.detection.streaming_adapters.paan_streaming import PAANStreamingDetector
 from src.detection.streaming_fusion import AnomalyState, StreamingFusionEngine
 from src.detection.track_manager import TrackManager
+from src.detection.surveillance_reporter import SurveillanceReporter
 
 logger = logging.getLogger(__name__)
 
@@ -81,6 +82,12 @@ class CameraPipeline:
         self._latest_meta: dict = {}
         self._frame_lock = threading.Lock()
 
+        self._sa_reporter = SurveillanceReporter(
+            analytics_service_url=config.ANALYTICS_SERVICE_URL,
+            camera_id=camera_id,
+            interval=30.0,
+        )
+
     @property
     def status(self) -> str:
         return self._status
@@ -117,6 +124,7 @@ class CameraPipeline:
         for det in self._per_camera_detectors.values():
             if hasattr(det, "stop"):
                 det.stop()
+        self._sa_reporter.stop()
         self._status = "stopped"
 
     def _run(self):
@@ -127,6 +135,7 @@ class CameraPipeline:
         self.frame_reader.wait_ready(timeout=120)
 
         self._init_per_camera_detectors()
+        self._sa_reporter.start()
 
         if paan := self._per_camera_detectors.get("paan"):
             if isinstance(paan, PAANStreamingDetector) and self.rtsp_url:
@@ -241,6 +250,10 @@ class CameraPipeline:
                     detector_scores[name] = result.score
                     if name == "crime_skelnet":
                         all_bboxes.update(result.metadata.get("bboxes", {}))
+                    elif name == "surveillance_analytics":
+                        sa_stats = result.metadata.get("stats", {})
+                        if sa_stats:
+                            self._sa_reporter.update(sa_stats)
             except Exception as e:
                 logger.error("Detector %s error on %s: %s", name, self.camera_id, e)
 

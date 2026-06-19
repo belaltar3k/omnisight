@@ -472,6 +472,7 @@ services:
       ANOMALY_THRESHOLD: ${AI_ANOMALY_THRESHOLD:-0.55}
       MAX_ANOMALY_DURATION: ${AI_MAX_ANOMALY_DURATION:-30.0}
       INCIDENT_SERVICE_URL: http://incident-service:3003
+      ANALYTICS_SERVICE_URL: ${AI_ANALYTICS_SERVICE_URL:-http://analytics-service:3006}
       EDGE_SYNC_SECRET: ${EDGE_SYNC_SECRET}
       EDGE_NODE_CODE: ${EDGE_NODE_ID:-edge-node-01}
       REDIS_HOST: edge-cache
@@ -483,6 +484,7 @@ services:
       - video-ingestion
       - edge-cache
       - incident-service
+      - analytics-service
 
 volumes:
   auth_postgres_data:

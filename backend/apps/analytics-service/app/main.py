@@ -7,7 +7,7 @@ from app.core.config import settings
 from app.core.logging import logger
 
 # Routers
-from app.api.v1 import dashboard, incidents, cameras, heatmap, reports, websockets
+from app.api.v1 import dashboard, incidents, cameras, heatmap, reports, websockets, surveillance
 
 # Async messaging and DB connections
 from app.messaging.kafka_consumer import start_kafka_consumer
@@ -38,7 +38,8 @@ def create_app() -> FastAPI:
     app.include_router(cameras.router, prefix=api_prefix)
     app.include_router(heatmap.router, prefix=api_prefix)
     app.include_router(reports.router, prefix=api_prefix)
-    
+    app.include_router(surveillance.router, prefix=api_prefix)
+
     # Register WebSocket Router (Does not need the /analytics prefix)
     app.include_router(websockets.router, prefix=settings.API_V1_STR)
     
