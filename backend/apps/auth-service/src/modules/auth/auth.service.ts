@@ -74,12 +74,10 @@ export class AuthService {
   }
 
   async login(dto: LoginDto) {
-    // Login accepts either an email or an employee code, plus the password.
-    const user = dto.email
-      ? await this.usersService.findByEmail(dto.email)
-      : dto.employeeCode
-        ? await this.usersService.findByEmployeeCode(dto.employeeCode)
-        : null;
+    // identifier is either an email (contains "@") or an employee code.
+    const user = dto.identifier.includes('@')
+      ? await this.usersService.findByEmail(dto.identifier)
+      : await this.usersService.findByEmployeeCode(dto.identifier);
 
     if (!user) {
       throw new UnauthorizedException('Invalid credentials');

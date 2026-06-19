@@ -1,14 +1,9 @@
-import { IsEmail, IsOptional, IsString, ValidateIf } from 'class-validator';
+import { IsString } from 'class-validator';
 
 export class LoginDto {
-  // Either email or employeeCode must be provided.
-  @ValidateIf((o) => !o.employeeCode)
-  @IsEmail()
-  email?: string;
-
-  @ValidateIf((o) => !o.email)
+  // Accepts either an email or an employee code.
   @IsString()
-  employeeCode?: string;
+  identifier!: string;
 
   @IsString()
   password!: string;
