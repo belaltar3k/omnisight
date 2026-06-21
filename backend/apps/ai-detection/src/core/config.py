@@ -49,10 +49,13 @@ class Settings(BaseSettings):
     DOMINANCE_WEIGHT: float = 0.85
     SMOOTHING_WINDOW: int = 5
     MIN_ANOMALY_DURATION: float = 2.0
-    ANOMALY_COOLDOWN: float = 3.0
-    # Maximum time to stay in ANOMALOUS state before forcing COOLDOWN,
-    # even if the score never drops. Prevents perpetual-anomaly on looping content.
+    ANOMALY_COOLDOWN: float = 30.0
     MAX_ANOMALY_DURATION: float = 30.0
+
+    # --- Micro-batch settings ---
+    # Number of seconds of footage to accumulate before running the AI models.
+    # The pipeline processes this clip all at once instead of frame-by-frame.
+    MICRO_BATCH_SECONDS: float = 5.0
 
     # --- Integration (use localhost when running natively) ---
     INCIDENT_SERVICE_URL: str = "http://localhost:3003"

@@ -148,7 +148,7 @@ class WorkerPool:
                 "fps": round(pipeline.fps, 1),
                 "active_detectors": pipeline.active_detectors,
                 "last_fusion_score": round(pipeline.last_fused_score, 4),
-                "anomaly_active": pipeline.fusion.state.value != "normal",
+                "anomaly_active": pipeline.is_anomaly_active,
                 "total_detections_sent": pipeline.total_detections_sent,
             })
         return result

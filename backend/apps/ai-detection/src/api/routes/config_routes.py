@@ -81,7 +81,7 @@ async def update_config(update: ConfigUpdate):
 
         if _worker_pool:
             for pipeline in _worker_pool._pipelines.values():
-                pipeline.fusion.update_weights(_config.get_weights_dict())
+                pipeline.update_weights(_config.get_weights_dict())
 
         changes.append(f"updated weights: {update.weights}")
 
@@ -89,7 +89,7 @@ async def update_config(update: ConfigUpdate):
         _config.ANOMALY_THRESHOLD = update.anomaly_threshold
         if _worker_pool:
             for pipeline in _worker_pool._pipelines.values():
-                pipeline.fusion.anomaly_threshold = update.anomaly_threshold
+                pipeline.update_anomaly_threshold(update.anomaly_threshold)
         changes.append(f"threshold={update.anomaly_threshold}")
 
     return {"success": True, "changes": changes}
