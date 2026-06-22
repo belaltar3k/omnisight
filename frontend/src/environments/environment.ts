@@ -1,4 +1,4 @@
-const GATEWAY = `http://localhost:3000/api/v1`;
+const GATEWAY = `/api/v1`;
 
 export const environment = {
     auth: `${GATEWAY}/auth`,
@@ -15,7 +15,8 @@ export const environment = {
     training: `${GATEWAY}/training`,
     user: `${GATEWAY}/users`,
     notification: `${GATEWAY}/notifications`,
-    chatbot: `${GATEWAY}/chatbot`,
+    analytics: `${GATEWAY}/analytics`,
+    deviceToken: `${GATEWAY}/device-tokens`,
     settings: `${GATEWAY}/settings`,
 };
 export const authApiEndpoints = {
@@ -34,6 +35,7 @@ export const profileApiEndpoints = {
   getProfileByAuthId: (id: string) => `${environment.profile}/auth/${id}`,
   getFullProfile: (id: string) => `${environment.profile}/auth/${id}/full`,
   updateProfile: (id: string) => `${environment.profile}/auth/${id}`,
+  deleteProfile: (id: string) => `${environment.profile}/auth/${id}`,
 };
 
 export const zoneAssignmentApiEndpoints = {
@@ -60,6 +62,7 @@ export const edgeNodeApiEndpoints = {
   createEdgeNode: `${environment.edgeNode}`,
   getEdgeNodes: `${environment.edgeNode}`,
   getEdgeNodeById: (id: string) => `${environment.edgeNode}/${id}`,
+  getEdgeNodeByCode: (code: string) => `${environment.edgeNode}/by-code/${code}`,
   updateEdgeNode: (id: string) => `${environment.edgeNode}/${id}`,
   deleteEdgeNode: (id: string) => `${environment.edgeNode}/${id}`,
 };
@@ -68,6 +71,7 @@ export const cameraApiEndpoints = {
   createCamera: `${environment.camera}`,
   getCameras: `${environment.camera}`,
   getCameraById: (id: string) => `${environment.camera}/${id}`,
+  getCameraByCode: (code: string) => `${environment.camera}/by-code/${code}`,
   getCamerasByZone: (zoneId: string) => `${environment.camera}/by-zone/${zoneId}`,
   getCamerasByEdgeNode: (id: string) => `${environment.camera}/by-edge-node/${id}`,
   updateCamera: (id: string) => `${environment.camera}/${id}`,
@@ -165,9 +169,37 @@ export const notificationApiEndpoints = {
 };
 
 export const chatbotApiEndpoints = {
-  search: `${environment.chatbot}/search`,
-  sendMessage: `${environment.chatbot}/message`,
-  getHistory: `${environment.chatbot}/history`,
+  chat: `${environment.analytics}/chatbot/chat`,
+  getSession: (id: string) => `${environment.analytics}/chatbot/sessions/${id}`,
+  clearSession: (id: string) => `${environment.analytics}/chatbot/sessions/${id}`,
+};
+
+export const analyticsApiEndpoints = {
+  dashboard: `${environment.analytics}/dashboard/`,
+  incidentStats: `${environment.analytics}/incidents/stats`,
+  incidentTrends: `${environment.analytics}/incidents/trends`,
+  responseTimes: `${environment.analytics}/incidents/response-times`,
+  cameraPerformance: `${environment.analytics}/cameras/performance`,
+  heatmap: `${environment.analytics}/heatmap/`,
+  surveillanceSummary: `${environment.analytics}/surveillance/summary`,
+  surveillanceLatest: `${environment.analytics}/surveillance/latest`,
+  surveillanceCrowd: `${environment.analytics}/surveillance/crowd`,
+  surveillanceTraffic: `${environment.analytics}/surveillance/traffic`,
+  generateReport: `${environment.analytics}/reports/generate`,
+  vlmAnalyses: `${environment.analytics}/vlm/analyses`,
+  vlmAnalysis: (id: string) => `${environment.analytics}/vlm/analyses/${id}`,
+  vlmSummary: `${environment.analytics}/vlm/summary`,
+};
+
+export const vlmApiEndpoints = {
+  getAnalyses: `${environment.analytics}/vlm/analyses`,
+  getAnalysis: (id: string) => `${environment.analytics}/vlm/analyses/${id}`,
+  getSummary: `${environment.analytics}/vlm/summary`,
+};
+
+export const deviceTokenApiEndpoints = {
+  register: `${environment.deviceToken}`,
+  unregister: `${environment.deviceToken}`,
 };
 
 export const settingsApiEndpoints = {

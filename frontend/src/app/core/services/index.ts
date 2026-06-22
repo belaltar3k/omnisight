@@ -16,3 +16,4 @@ export * from "./ml-model.service";
 export * from "./loading.service";
 export * from "./chatbot.service";
 export * from "./permissions.service";
+export * from "./analytics.service";

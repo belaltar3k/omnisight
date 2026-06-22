@@ -35,13 +35,11 @@ export class SidebarComponent {
           label: "Dashboard",
           route: "/dashboard",
           icon: this.safe(svgIcon("grid")),
-          badge: 0,
         },
         {
           label: "Incidents",
           route: "/incidents",
           icon: this.safe(svgIcon("alert")),
-          badge: 8,
         },
       ],
     },
@@ -58,6 +56,11 @@ export class SidebarComponent {
           route: "/edge-nodes",
           icon: this.safe(svgIcon("server")),
         },
+        {
+          label: "Zones",
+          route: "/zones",
+          icon: this.safe(svgIcon("map-pin")),
+        },
       ],
     },
     {
@@ -69,35 +72,9 @@ export class SidebarComponent {
           icon: this.safe(svgIcon("bar-chart")),
         },
         {
-          label: "Alerts",
-          route: "/alerts",
-          icon: this.safe(svgIcon("bell")),
-          badge: 3,
-        },
-      ],
-    },
-    {
-      title: "Machine Learning",
-      items: [
-        {
-          label: "ML Models",
-          route: "/ml-models",
-          icon: this.safe(svgIcon("cpu")),
-        },
-        {
-          label: "Training",
-          route: "/training",
-          icon: this.safe(svgIcon("target")),
-        },
-        {
-          label: "Datasets",
-          route: "/datasets",
-          icon: this.safe(svgIcon("database")),
-        },
-        {
-          label: "Annotations",
-          route: "/annotations",
-          icon: this.safe(svgIcon("tag")),
+          label: "Chatbot",
+          route: "/chatbot",
+          icon: this.safe(svgIcon("message")),
         },
       ],
     },
@@ -105,30 +82,9 @@ export class SidebarComponent {
       title: "Configuration",
       items: [
         {
-          label: "Zones",
-          route: "/zones",
-          icon: this.safe(svgIcon("map-pin")),
-        },
-        { label: "Users", route: "/users", icon: this.safe(svgIcon("users")) },
-        {
-          label: "Settings",
-          route: "/settings",
-          icon: this.safe(svgIcon("settings")),
-        },
-      ],
-    },
-    {
-      title: "Tools",
-      items: [
-        {
-          label: "Chatbot",
-          route: "/chatbot",
-          icon: this.safe(svgIcon("message")),
-        },
-        {
-          label: "Notifications",
-          route: "/notifications",
-          icon: this.safe(svgIcon("notifications")),
+          label: "Users",
+          route: "/users",
+          icon: this.safe(svgIcon("users")),
         },
       ],
     },

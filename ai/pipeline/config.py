@@ -6,13 +6,17 @@ from dataclasses import dataclass, field
 @dataclass
 class PipelineConfig:
     # -- Component weights (re-normalised at runtime if a component is unavailable) --
+    # PAAN is excluded from this pool — it acts as an additive audio boost instead.
     weights: dict[str, float] = field(default_factory=lambda: {
         "crime_skelnet": 0.45,
-        "paan": 0.25,
         "weapon_detection": 0.25,
         "video_mae": 0.05,
         "surveillance_analytics": 0.0,
     })
+
+    # -- Audio boost: PAAN score is added on top of the fused video score.
+    #    fused_final = clip(fused_video + paan_score * paan_boost_strength, 0, 1)
+    paan_boost_strength: float = 0.65
 
     # -- Decision threshold --
     anomaly_threshold: float = 0.55

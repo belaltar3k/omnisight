@@ -26,18 +26,18 @@
 
     <form class="space-y-4" [formGroup]="loginForm" (ngSubmit)="onLogin()">
       <app-input
-        id="email"
-        label="Email"
-        placeholder="example@email.com"
-        type="email"
-        autocomplete="email"
-        formControlName="email"
+        id="identifier"
+        label="Email / Username"
+        placeholder="Email or username"
+        type="text"
+        autocomplete="username"
+        formControlName="identifier"
         [required]="true"
       ></app-input>
       @if (
-        loginForm.controls.email.touched && loginForm.controls.email.invalid
+        loginForm.controls.identifier.touched && loginForm.controls.identifier.invalid
       ) {
-        <p class="text-xs text-danger">Enter a valid email address.</p>
+        <p class="text-xs text-danger">Email or username is required.</p>
       }
 
       <app-input

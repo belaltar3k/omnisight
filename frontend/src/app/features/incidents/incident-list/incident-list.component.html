@@ -27,13 +27,13 @@
         </tr>
       </thead>
       <tbody>
-        @for (incident of incidents$ | async; track incident.incidentId) {
+        @for (incident of incidents$ | async; track incident.id) {
           <tr
-            [routerLink]="['/incidents', incident.incidentId]"
+            [routerLink]="['/incidents', incident.id]"
             class="border-b border-border-subtle hover:bg-border-subtle cursor-pointer transition-colors"
           >
             <td class="px-4 py-3 text-xs font-mono text-brand">
-              {{ incident.incidentId }}
+              {{ incident.id }}
             </td>
             <td class="px-4 py-3 text-xs text-white capitalize">
               {{ incident.crimeType }}

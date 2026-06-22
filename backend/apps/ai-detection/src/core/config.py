@@ -35,12 +35,15 @@ class Settings(BaseSettings):
     DISABLED_MODELS: List[str] = []
     DISABLED_SA_MODULES: List[str] = []
 
-    # --- Component weights ---
+    # --- Component weights (PAAN excluded — it is an additive audio boost, not pooled) ---
     WEIGHT_SKELNET: float = 0.45
-    WEIGHT_PAAN: float = 0.25
     WEIGHT_WEAPON: float = 0.25
     WEIGHT_VIDEOMAE: float = 0.05
     WEIGHT_SURVEILLANCE: float = 0.0
+
+    # PAAN adds this fraction of its score on top of the video-fusion score.
+    # fused_final = clip(video_fused + paan_score * PAAN_BOOST_STRENGTH, 0, 1)
+    PAAN_BOOST_STRENGTH: float = 0.65
 
     # --- Processing ---
     TARGET_FPS: int = 15
@@ -120,7 +123,6 @@ class Settings(BaseSettings):
     def get_weights_dict(self) -> dict[str, float]:
         return {
             "crime_skelnet": self.WEIGHT_SKELNET,
-            "paan": self.WEIGHT_PAAN,
             "weapon_detection": self.WEIGHT_WEAPON,
             "video_mae": self.WEIGHT_VIDEOMAE,
             "surveillance_analytics": self.WEIGHT_SURVEILLANCE,

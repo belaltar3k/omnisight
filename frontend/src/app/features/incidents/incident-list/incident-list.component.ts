@@ -7,24 +7,6 @@ import { PriorityBadgeComponent } from "@common/components/priority-badge/priori
 import { IncidentService } from "@core/services";
 import {BtnStylesEnum} from "@shared/enums";
 
-interface Incident {
-  id: string;
-  crimeType: string;
-  confidence: number;
-  status:
-    | "new"
-    | "acknowledged"
-    | "investigating"
-    | "escalated"
-    | "resolved"
-    | "false_positive"
-    | "vlm_verifying"
-    | "dispatched"
-    | "on_scene";
-  priority: "critical" | "high" | "medium" | "low";
-  camera: string;
-  time: string;
-}
 
 @Component({
   selector: "app-incident-list",

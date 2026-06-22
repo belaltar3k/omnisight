@@ -9,6 +9,7 @@ import sys
 import tempfile
 import threading
 import time
+import uuid
 from typing import Optional
 
 import cv2
@@ -20,7 +21,7 @@ from src.detection.incident_sender import IncidentSender
 from src.detection.model_manager import ModelManager, _ensure_ai_path
 from src.detection.track_manager import TrackManager
 from src.detection.surveillance_reporter import SurveillanceReporter
-from src.detection.vlm_client import VLMClient
+from src.detection.vlm_client import VLMClient, _encode_to_mp4
 
 logger = logging.getLogger(__name__)
 
@@ -121,6 +122,23 @@ class CameraPipeline:
             if self._vlm_client
             else None
         )
+
+        # S3 client — initialized independently so clips upload even without VLM
+        self._s3: Optional[object] = None
+        self._s3_bucket = config.S3_BUCKET
+        self._s3_region = config.S3_REGION
+        if config.S3_ENABLED and config.AWS_ACCESS_KEY_ID and config.AWS_SECRET_ACCESS_KEY:
+            try:
+                import boto3
+                self._s3 = boto3.client(
+                    "s3",
+                    region_name=config.S3_REGION,
+                    aws_access_key_id=config.AWS_ACCESS_KEY_ID,
+                    aws_secret_access_key=config.AWS_SECRET_ACCESS_KEY,
+                )
+                logger.info("S3 client initialised for camera %s (bucket=%s)", camera_id, config.S3_BUCKET)
+            except Exception as e:
+                logger.warning("S3 init failed for camera %s: %s", camera_id, e)
 
     # ------------------------------------------------------------------
     # Properties (consumed by WorkerPool and API routes)
@@ -332,15 +350,14 @@ class CameraPipeline:
                         exc_info=True,
                     )
 
-            # Inject PAAN score as a synthetic per-frame result
+            # Capture PAAN score separately — it is an additive audio boost,
+            # not a weighted-pool participant, so crime_skelnet and weapon_detection
+            # weights stay exactly as configured regardless of whether audio fires.
+            paan_boost_scores = None
             if self._paan_detector is not None:
                 paan_score = self._paan_detector._score
                 if paan_score > 0.0:
-                    results["paan"] = DetectorResult(
-                        scores=np.full(total_frames, paan_score, dtype=np.float32),
-                        num_frames=total_frames,
-                        metadata=self._paan_detector.get_metadata(),
-                    )
+                    paan_boost_scores = np.full(total_frames, paan_score, dtype=np.float32)
 
             if not results:
                 logger.warning("[%s] No detector results for this batch", self.camera_id)
@@ -360,6 +377,8 @@ class CameraPipeline:
                 num_frames=total_frames,
                 fps=float(self.config.TARGET_FPS),
                 processing_time=0.0,
+                audio_boost_scores=paan_boost_scores,
+                audio_boost_strength=self.config.PAAN_BOOST_STRENGTH,
             )
 
             self._last_fused_score = pipeline_result.peak_score
@@ -526,6 +545,32 @@ class CameraPipeline:
     # Incident dispatch
     # ------------------------------------------------------------------
 
+    def _upload_clip_s3(self, frames: list[np.ndarray], event_id: str) -> Optional[str]:
+        """Upload a clip to S3 and return the presigned URL, or None on failure."""
+        if not self._s3 or not frames:
+            return None
+        mp4_bytes = _encode_to_mp4(frames, fps=5.0)
+        if not mp4_bytes:
+            return None
+        key = f"clips/{self.camera_id}/{event_id}.mp4"
+        try:
+            self._s3.put_object(
+                Bucket=self._s3_bucket,
+                Key=key,
+                Body=mp4_bytes,
+                ContentType="video/mp4",
+            )
+            url = self._s3.generate_presigned_url(
+                "get_object",
+                Params={"Bucket": self._s3_bucket, "Key": key},
+                ExpiresIn=7 * 24 * 3600,
+            )
+            logger.info("Clip uploaded to S3: %s", key)
+            return url
+        except Exception as e:
+            logger.warning("S3 upload failed for %s: %s", self.camera_id, e)
+            return None
+
     def _dispatch_incident(self, pipeline_result, results, frames: list[np.ndarray]):
         skelnet_result = results.get("crime_skelnet")
         weapon_result = results.get("weapon_detection")
@@ -586,12 +631,18 @@ class CameraPipeline:
         if track_ids:
             ai_metadata["keypoints"] = True
 
+        # Upload clip to S3 before creating the incident so videoUrl is set immediately
+        event_id = str(uuid.uuid4())
+        clip_frames = list(frames[-60:])  # last ~4s at 15fps
+        video_url = self._upload_clip_s3(clip_frames, event_id)
+
         sync_result = self.incident_sender.send_sync(
             camera_code=self.camera_id,
             track_id=track_id,
             crime_type=crime_type,
             confidence=confidence,
             ai_metadata=ai_metadata,
+            video_url=video_url,
         )
 
         if sync_result:
@@ -601,7 +652,6 @@ class CameraPipeline:
             self._last_dispatch_time = time.time()
 
             if self._vlm_client is not None and self._vlm_executor is not None:
-                clip_frames = list(frames[-60:])  # last ~4s at 15fps
                 self._vlm_executor.submit(
                     self._vlm_client.analyze_and_update,
                     frames=clip_frames,
@@ -610,6 +660,7 @@ class CameraPipeline:
                     zone="",
                     fusion_score=pipeline_result.peak_score,
                     incident_sender=self.incident_sender,
+                    existing_video_url=video_url,
                 )
 
     # ------------------------------------------------------------------

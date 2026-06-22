@@ -76,7 +76,8 @@ def main() -> None:
     print("\nComponent Scores:")
     for name, scores in result.component_scores.items():
         w = result.active_weights.get(name, 0)
-        print(f"  {name:20s}  weight={w:.2f}  peak={scores.max():.4f}  mean={scores.mean():.4f}")
+        role = "boost" if name == "paan" else "weight"
+        print(f"  {name:20s}  {role}={w:.2f}  peak={scores.max():.4f}  mean={scores.mean():.4f}")
 
     if result.anomaly_regions:
         print(f"\nAnomaly Regions ({len(result.anomaly_regions)}):")
@@ -133,7 +134,8 @@ def _save_plot(result, output_dir: str) -> None:
     for name, scores in result.component_scores.items():
         w = result.active_weights.get(name, 0)
         color = colors.get(name, "#999999")
-        ax.plot(time_axis, scores, label=f"{name} (w={w:.2f})", alpha=0.5, linewidth=1, color=color)
+        label = f"{name} (boost={w:.2f})" if name == "paan" else f"{name} (w={w:.2f})"
+        ax.plot(time_axis, scores, label=label, alpha=0.5, linewidth=1, color=color)
 
     ax.plot(time_axis, result.fused_scores, label="Fused", color="black", linewidth=2)
     ax.axhline(y=result.threshold, color="red", linestyle="--", linewidth=1, label=f"Threshold ({result.threshold})")

@@ -28,17 +28,21 @@ class PAANModels:
             image_processor=image_processor,
         )
 
-        # Stage 3: FlexSED
+        # Stage 3: FlexSED (optional — gracefully skipped if not installed)
         flexsed_dir = Path(__file__).resolve().parent.parent / "FlexSED"
-        if str(flexsed_dir) not in sys.path:
-            sys.path.insert(0, str(flexsed_dir))
-
-        from api import FlexSED
-        self.flexsed = FlexSED(
-            config_path=str(flexsed_dir / "src" / "configs" / "model.yml"),
-            ckpt_path=str(flexsed_dir / "ckpts" / "flexsed_as.pt"),
-            device=device,
-        )
+        self.flexsed = None
+        if flexsed_dir.is_dir():
+            if str(flexsed_dir) not in sys.path:
+                sys.path.insert(0, str(flexsed_dir))
+            try:
+                from api import FlexSED
+                self.flexsed = FlexSED(
+                    config_path=str(flexsed_dir / "src" / "configs" / "model.yml"),
+                    ckpt_path=str(flexsed_dir / "ckpts" / "flexsed_as.pt"),
+                    device=device,
+                )
+            except Exception as e:
+                print(f"[PAAN] FlexSED unavailable ({e}) — running with YAMNet + Swin only.")
 
         self.device = device
 

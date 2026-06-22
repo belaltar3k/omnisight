@@ -66,9 +66,8 @@
           },
           "defaultConfiguration": "development",
           "options": {
-            "allowedHosts": [
-              "82c495fe-9a2c-4673-ba2c-68f8c8bfb768-00-2p218ykc0gnw3.worf.replit.dev"
-            ]
+            "proxyConfig": "proxy.conf.json",
+            "allowedHosts": true
           }
         }
       }

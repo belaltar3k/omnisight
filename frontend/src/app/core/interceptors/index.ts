@@ -3,3 +3,4 @@ export * from './header-interceptor';
 export * from './refresh-interceptor';
 export * from './success-interceptor';
 export * from './loading-interceptor';
+export * from './response-interceptor';

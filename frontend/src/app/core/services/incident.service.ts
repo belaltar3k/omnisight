@@ -1,6 +1,7 @@
 import { inject, Injectable } from '@angular/core';
 import { incidentApiEndpoints } from '@environments';
 import { Observable } from 'rxjs';
+import { map } from 'rxjs/operators';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import {
   IIncident,
@@ -47,7 +48,9 @@ export class IncidentService {
 
   getIncidents(filters?: IIncidentFilters): Observable<IIncident[]> {
     const params = this.buildFilterParams(filters);
-    return this.httpClient.get<IIncident[]>(incidentApiEndpoints.getIncidents, { params });
+    return this.httpClient.get<{ data: IIncident[]; total: number; page: number; limit: number; totalPages: number }>(
+      incidentApiEndpoints.getIncidents, { params }
+    ).pipe(map(r => r.data));
   }
 
   private buildFilterParams(filters?: IIncidentFilters): HttpParams {

@@ -158,33 +158,37 @@ def run_inference(
     else:
         print("[STAGE 2] Skipped (no ballistic signatures in Stage 1).")
 
-    # ── Stage 3: FlexSED ────────────────────────────────────────────────────
-    print("[STAGE 3] FlexSED (semantic reasoning)...")
-    audio, _ = librosa.load(audio_path, sr=cfg.sample_rate, mono=True)
-    audio = librosa.util.normalize(audio)
+    # ── Stage 3: FlexSED (skipped if not installed) ─────────────────────────
+    flexsed_results = []
+    if models.flexsed is not None:
+        print("[STAGE 3] FlexSED (semantic reasoning)...")
+        audio, _ = librosa.load(audio_path, sr=cfg.sample_rate, mono=True)
+        audio = librosa.util.normalize(audio)
 
-    temp_wav = os.path.join(os.path.dirname(audio_path) or ".", "_paan_temp.wav")
-    sf.write(temp_wav, audio, cfg.sample_rate)
+        temp_wav = os.path.join(os.path.dirname(audio_path) or ".", "_paan_temp.wav")
+        sf.write(temp_wav, audio, cfg.sample_rate)
 
-    all_preds = []
-    with torch.no_grad():
-        for i in range(0, len(cfg.surveillance_events), cfg.flexsed_batch):
-            chunk = cfg.surveillance_events[i : i + cfg.flexsed_batch]
-            preds_chunk = models.flexsed.run_inference(temp_wav, chunk, norm_audio=True)
-            all_preds.append(preds_chunk)
+        all_preds = []
+        with torch.no_grad():
+            for i in range(0, len(cfg.surveillance_events), cfg.flexsed_batch):
+                chunk = cfg.surveillance_events[i : i + cfg.flexsed_batch]
+                preds_chunk = models.flexsed.run_inference(temp_wav, chunk, norm_audio=True)
+                all_preds.append(preds_chunk)
 
-    preds = torch.cat(all_preds, dim=0)
-    scores_max = preds[:, 0].max(dim=1).values.cpu().numpy()
+        preds = torch.cat(all_preds, dim=0)
+        scores_max = preds[:, 0].max(dim=1).values.cpu().numpy()
 
-    flexsed_results = [
-        (evt, float(sc))
-        for evt, sc in zip(cfg.surveillance_events, scores_max)
-        if sc > cfg.flexsed_thresh
-    ]
-    flexsed_results.sort(key=lambda x: x[1], reverse=True)
+        flexsed_results = [
+            (evt, float(sc))
+            for evt, sc in zip(cfg.surveillance_events, scores_max)
+            if sc > cfg.flexsed_thresh
+        ]
+        flexsed_results.sort(key=lambda x: x[1], reverse=True)
 
-    if os.path.exists(temp_wav):
-        os.remove(temp_wav)
+        if os.path.exists(temp_wav):
+            os.remove(temp_wav)
+    else:
+        print("[STAGE 3] FlexSED skipped (not installed).")
 
     total_time = time.time() - total_start
 

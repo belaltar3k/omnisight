@@ -38,23 +38,26 @@ class IncidentSender:
         confidence: float,
         detected_at: Optional[datetime] = None,
         ai_metadata: Optional[dict[str, Any]] = None,
+        video_url: Optional[str] = None,
     ) -> Optional[dict]:
         if detected_at is None:
             detected_at = datetime.now(timezone.utc)
 
+        detection: dict[str, Any] = {
+            "cameraCode": camera_code,
+            "trackId": track_id,
+            "crimeType": crime_type,
+            "confidence": round(confidence, 4),
+            "detectedAt": detected_at.isoformat(),
+            "modelVersion": "omnisight-ai-detection-v1.0",
+            "aiMetadata": ai_metadata or {},
+        }
+        if video_url:
+            detection["videoUrl"] = video_url
+
         payload = {
             "edgeNodeCode": self.edge_node_code,
-            "detections": [
-                {
-                    "cameraCode": camera_code,
-                    "trackId": track_id,
-                    "crimeType": crime_type,
-                    "confidence": round(confidence, 4),
-                    "detectedAt": detected_at.isoformat(),
-                    "modelVersion": "omnisight-ai-detection-v1.0",
-                    "aiMetadata": ai_metadata or {},
-                }
-            ],
+            "detections": [detection],
         }
 
         try:
@@ -81,12 +84,18 @@ class IncidentSender:
         track_id: str,
         crime_type: str,
         confidence: float,
+        video_url: Optional[str] = None,
+        vlm_verification: Optional[dict] = None,
     ) -> Optional[dict]:
         payload = {
             "trackId": track_id,
             "crimeType": crime_type,
             "confidence": round(confidence, 4),
         }
+        if video_url:
+            payload["videoUrl"] = video_url
+        if vlm_verification:
+            payload["vlmVerification"] = vlm_verification
 
         try:
             resp = self._client.post(

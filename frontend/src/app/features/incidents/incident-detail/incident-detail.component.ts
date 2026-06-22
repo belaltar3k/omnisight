@@ -46,7 +46,7 @@ export class IncidentDetailComponent implements OnInit {
   acknowledge(): void {
     const inc = this.incident();
     if (!inc) return;
-    this.incidentService.acknowledgeIncident(inc.incidentId).subscribe({
+    this.incidentService.acknowledgeIncident(inc.id).subscribe({
       next: (updated) => {
         this.incident.set(updated);
         this.toastr.success("Incident acknowledged");
@@ -57,7 +57,7 @@ export class IncidentDetailComponent implements OnInit {
   escalate(): void {
     const inc = this.incident();
     if (!inc) return;
-    this.incidentService.escalateIncident(inc.incidentId).subscribe({
+    this.incidentService.escalateIncident(inc.id).subscribe({
       next: (updated) => {
         this.incident.set(updated);
         this.toastr.warning("Incident escalated");
@@ -68,7 +68,7 @@ export class IncidentDetailComponent implements OnInit {
   resolve(): void {
     const inc = this.incident();
     if (!inc) return;
-    this.incidentService.resolveIncident(inc.incidentId, { resolutionNotes: 'Resolved via dashboard' }).subscribe({
+    this.incidentService.resolveIncident(inc.id, { resolutionNotes: 'Resolved via dashboard' }).subscribe({
       next: (updated) => {
         this.incident.set(updated);
         this.toastr.success("Incident resolved");
@@ -79,7 +79,7 @@ export class IncidentDetailComponent implements OnInit {
   markFalsePositive(): void {
     const inc = this.incident();
     if (!inc) return;
-    this.incidentService.markFalsePositive(inc.incidentId, { falsePositiveReason: 'Marked false positive via dashboard' }).subscribe({
+    this.incidentService.markFalsePositive(inc.id, { falsePositiveReason: 'Marked false positive via dashboard' }).subscribe({
       next: (updated) => {
         this.incident.set(updated);
         this.toastr.info("Marked as false positive");
@@ -88,16 +88,31 @@ export class IncidentDetailComponent implements OnInit {
   }
 
   fusionBars(inc: IIncident): { name: string; score: number }[] {
-    if (!inc.fusionScores) return [];
-    const s = inc.fusionScores;
-    return [
-      { name: 'MIL', score: s.mil },
-      { name: 'Flow', score: s.flow },
-      { name: 'YOLO', score: s.yolo },
-      { name: 'Audio', score: s.audio },
-      { name: 'Rules', score: s.rules },
-      { name: 'Pose', score: s.pose },
-    ];
+    // Prefer structured fusionScores; fall back to aiMetadata.component_scores
+    if (inc.fusionScores) {
+      const s = inc.fusionScores;
+      return [
+        { name: 'MIL', score: s.mil },
+        { name: 'Flow', score: s.flow },
+        { name: 'YOLO', score: s.yolo },
+        { name: 'Audio', score: s.audio },
+        { name: 'Rules', score: s.rules },
+        { name: 'Pose', score: s.pose },
+      ];
+    }
+    const meta = inc.aiMetadata as Record<string, unknown> | undefined;
+    const scores = meta?.['component_scores'] as Record<string, number> | undefined;
+    if (!scores) return [];
+    return Object.entries(scores).map(([name, score]) => ({
+      name: name.replace('_', ' ').replace(/\b\w/g, c => c.toUpperCase()),
+      score,
+    }));
+  }
+
+  fusedPeak(inc: IIncident): number | null {
+    const meta = inc.aiMetadata as Record<string, unknown> | undefined;
+    const peak = meta?.['fused_peak'];
+    return typeof peak === 'number' ? peak : null;
   }
 
   confidenceWidth(score: number): string {

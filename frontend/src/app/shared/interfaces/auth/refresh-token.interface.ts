@@ -1,4 +1,3 @@
-// RefreshToken function interface
 export interface IRefreshTokenRequest {
   refreshToken: string;
 }

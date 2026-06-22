@@ -281,6 +281,8 @@ export class IncidentsService implements OnModuleInit {
     incident.confidence = dto.confidence;
     incident.priority   = newPriority;
     incident.status     = IncidentStatus.NEW; // now ready for guards
+    if (dto.videoUrl) incident.videoUrl = dto.videoUrl;
+    if (dto.vlmVerification) incident.vlmVerification = dto.vlmVerification;
 
     await this.incidentRepository.save(incident);
 

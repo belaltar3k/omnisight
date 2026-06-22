@@ -18,6 +18,7 @@ import { NotFoundException } from '@nestjs/common';
 interface AuthJwtPayload {
   sub: string;
   email: string;
+  role?: string;
 }
 
 @Injectable()
@@ -139,9 +140,11 @@ export class AuthService {
         throw new UnauthorizedException('Invalid refresh token');
       }
 
+      const user = await this.usersService.findById(payload.sub);
       const tokens = await this.issueTokens({
         sub: payload.sub,
         email: payload.email,
+        role: user?.role,
       });
 
       await this.tokensService.revokeRefreshToken(savedToken.id);

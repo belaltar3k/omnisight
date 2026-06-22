@@ -34,6 +34,7 @@ class PAANStreamingDetector(StreamingDetector):
         self.paan_run = None
 
         self._score: float = 0.0
+        self._score_hold_until: float = 0.0
         self._metadata: dict = {}
         self._audio_thread: Optional[threading.Thread] = None
         self._running = False
@@ -102,7 +103,12 @@ class PAANStreamingDetector(StreamingDetector):
             if paan_result["gunshot_verified"]:
                 combined = max(combined, 0.9)
 
-            self._score = combined
+            if combined > 0:
+                self._score = combined
+                # Hold for 20s so at least 2 video micro-batches (each 10s) see it.
+                self._score_hold_until = time.time() + 20.0
+            elif time.time() >= self._score_hold_until:
+                self._score = 0.0
             self._metadata = {
                 "yamnet_candidates": paan_result["yamnet_candidates"],
                 "gunshot_verified": paan_result["gunshot_verified"],
@@ -127,6 +133,7 @@ class PAANStreamingDetector(StreamingDetector):
 
     def reset(self) -> None:
         self._score = 0.0
+        self._score_hold_until = 0.0
         self._metadata = {}
 
     def stop(self):

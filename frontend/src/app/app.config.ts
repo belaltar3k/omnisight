@@ -3,7 +3,7 @@ import { provideRouter } from '@angular/router';
 import { provideHttpClient, withInterceptors } from '@angular/common/http';
 import { provideToastr } from 'ngx-toastr';
 import { routes } from './app.routes';
-import { loadingInterceptor, errorInterceptor, successInterceptor, headerInterceptor, refreshInterceptor } from '@core/interceptors';
+import { errorInterceptor, successInterceptor, headerInterceptor, refreshInterceptor, responseInterceptor } from '@core/interceptors';
 
 
 export const appConfig: ApplicationConfig = {
@@ -20,6 +20,6 @@ export const appConfig: ApplicationConfig = {
       tapToDismiss: true,
       newestOnTop: true,
     }),
-    provideHttpClient(withInterceptors([loadingInterceptor, headerInterceptor, refreshInterceptor, errorInterceptor, successInterceptor])),
+    provideHttpClient(withInterceptors([headerInterceptor, refreshInterceptor, responseInterceptor, errorInterceptor, successInterceptor])),
   ],
 };

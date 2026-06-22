@@ -25,7 +25,7 @@ export class LoginComponent {
   protected readonly BtnStylesEnum = BtnStylesEnum;
 
   protected readonly loginForm = this.fb.nonNullable.group({
-    email: ['', [Validators.required, Validators.email]],
+    identifier: ['', [Validators.required]],
     password: ['', [Validators.required]],
   });
 

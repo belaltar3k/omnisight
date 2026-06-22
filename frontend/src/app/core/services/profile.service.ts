@@ -51,4 +51,8 @@ export class ProfileService {
       body,
     );
   }
+
+  deleteProfile(id: string): Observable<void> {
+    return this.httpClient.delete<void>(profileApiEndpoints.deleteProfile(id));
+  }
 }

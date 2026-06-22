@@ -156,6 +156,11 @@ class PipelineRunner:
 
         processing_time = time.time() - t_start
 
+        # PAAN is an additive audio boost — pop it from the weighted pool so
+        # crime_skelnet and weapon_detection weights stay exactly as configured.
+        paan_result = results.pop("paan", None)
+        paan_boost_scores = paan_result.scores if paan_result is not None else None
+
         pipeline_result = self.fusion.fuse(
             results,
             num_frames=total_frames,
@@ -163,7 +168,15 @@ class PipelineRunner:
             processing_time=processing_time,
             failed_components=failed,
             disabled_components=list(disabled),
+            audio_boost_scores=paan_boost_scores,
+            audio_boost_strength=self.config.paan_boost_strength,
         )
+
+        if paan_result is not None:
+            aligned = self.fusion._align_scores(paan_result.scores, total_frames).astype(np.float32)
+            pipeline_result.component_scores["paan"] = aligned
+            pipeline_result.component_metadata["paan"] = paan_result.metadata
+            pipeline_result.active_weights["paan"] = self.config.paan_boost_strength
 
         print(f"\n[Pipeline] Fusion complete in {processing_time:.1f}s  "
               f"|  peak={pipeline_result.peak_score:.3f}  "

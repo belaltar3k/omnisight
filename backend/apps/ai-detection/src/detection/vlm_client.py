@@ -41,9 +41,12 @@ def _sample_frames(frames: list[np.ndarray], n: int) -> list[np.ndarray]:
 
 
 def _encode_to_mp4(frames: list[np.ndarray], fps: float = 5.0) -> Optional[bytes]:
-    """Encode frames to an in-memory MP4 using a temp file."""
+    """Encode frames to a browser-compatible H.264 MP4 via ffmpeg re-encode."""
+    import subprocess
     if not frames:
         return None
+    tmp_path = None
+    h264_path = None
     try:
         h, w = frames[0].shape[:2]
         tmp = tempfile.NamedTemporaryFile(suffix=".mp4", delete=False)
@@ -56,13 +59,37 @@ def _encode_to_mp4(frames: list[np.ndarray], fps: float = 5.0) -> Optional[bytes
             writer.write(f)
         writer.release()
 
-        with open(tmp_path, "rb") as fh:
+        # Re-encode to H.264 so browsers can play it; use system ffmpeg with libx264
+        h264_path = tmp_path + "_h264.mp4"
+        result = subprocess.run(
+            [
+                "/usr/bin/ffmpeg", "-y", "-i", tmp_path,
+                "-c:v", "libx264", "-preset", "fast", "-crf", "23",
+                "-pix_fmt", "yuv420p",
+                "-movflags", "+faststart",
+                h264_path,
+            ],
+            capture_output=True,
+            timeout=30,
+        )
+        if result.returncode != 0:
+            logger.warning("ffmpeg H.264 re-encode failed, using raw mp4v: %s", result.stderr[-300:])
+            h264_path = None
+
+        read_path = h264_path if h264_path else tmp_path
+        with open(read_path, "rb") as fh:
             data = fh.read()
-        os.unlink(tmp_path)
         return data
     except Exception as e:
         logger.warning("MP4 encoding failed: %s", e)
         return None
+    finally:
+        for p in (tmp_path, h264_path):
+            if p:
+                try:
+                    os.unlink(p)
+                except OSError:
+                    pass
 
 
 class VLMClient:
@@ -109,32 +136,45 @@ class VLMClient:
         zone: str,
         fusion_score: float,
         incident_sender: "IncidentSender",
+        existing_video_url: Optional[str] = None,
     ):
-        """Runs in a background thread. Full pipeline: VLM → S3 → classify → analytics."""
+        """Runs in a background thread. Full pipeline: VLM → classify → analytics."""
         event_id = str(uuid.uuid4())
-        timestamp = time.time()
 
-        # 1. Upload video clip to S3
-        video_url: Optional[str] = None
-        if self._s3 and frames:
+        # Use the clip already uploaded at dispatch time; only upload here as fallback
+        video_url: Optional[str] = existing_video_url
+        if not video_url and self._s3 and frames:
             video_url = self._upload_clip(frames, camera_id, event_id)
 
         # 2. Call VLM API
         vlm_result = self._call_vlm(frames, camera_id, zone, fusion_score, event_id, video_url)
         if vlm_result is None:
-            logger.warning("VLM returned no result for track=%s — keeping 'abnormal'", track_id)
+            logger.warning("VLM returned no result for track=%s", track_id)
             return
 
-        # 3. Update incident with VLM crime type
+        # 3. Update incident with VLM crime type + full verification data
         crime_type = vlm_result.get("crime_type", "abnormal")
         if crime_type not in VALID_CRIME_TYPES:
             crime_type = "suspicious"
         vlm_confidence = 0.7  # VLM gives qualitative score; map to numeric
 
+        vlm_verification = {
+            "status": "completed",
+            "verifiedCrimeType": crime_type,
+            "caption": vlm_result.get("caption"),
+            "anomalyScoreVlm": vlm_result.get("anomaly_score_vlm"),
+            "observedEvents": vlm_result.get("observed_events", []),
+            "anomalyEvidence": vlm_result.get("anomaly_evidence", []),
+            "peopleCount": vlm_result.get("people_count"),
+            "completedAt": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+        }
+
         classify_result = incident_sender.send_classify(
             track_id=track_id,
             crime_type=crime_type,
             confidence=vlm_confidence,
+            video_url=video_url,
+            vlm_verification=vlm_verification,
         )
         logger.info("VLM classify result for track=%s: crime=%s classify=%s", track_id, crime_type, classify_result)
 

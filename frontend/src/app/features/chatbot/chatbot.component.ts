@@ -3,7 +3,7 @@ import { FormsModule } from "@angular/forms";
 import { ButtonComponent } from "@common/components/button/button.component";
 import { InputComponent } from "@common/components/input/input";
 import { ChatbotService } from "@core/services";
-import {BtnStylesEnum} from "@shared/enums";
+import { BtnStylesEnum } from "@shared/enums";
 
 interface Message {
   role: "user" | "assistant";
@@ -22,6 +22,8 @@ export class ChatbotComponent {
 
   messages = signal<Message[]>([]);
   input = "";
+  isLoading = signal(false);
+  private sessionId: string | null = null;
 
   suggestions = [
     "Show assaults near parking areas",
@@ -31,7 +33,7 @@ export class ChatbotComponent {
   ];
 
   sendMessage(text: string) {
-    if (!text.trim()) return;
+    if (!text.trim() || this.isLoading()) return;
     const now = new Date().toLocaleTimeString([], {
       hour: "2-digit",
       minute: "2-digit",
@@ -40,20 +42,35 @@ export class ChatbotComponent {
       ...msgs,
       { role: "user", text: text.trim(), time: now },
     ]);
+    this.isLoading.set(true);
 
-    this.chatbotService.search({ query: text.trim() }).subscribe({
+    this.chatbotService.chat(text.trim(), this.sessionId).subscribe({
       next: (response) => {
+        this.sessionId = response.session_id;
         this.messages.update((msgs) => [
           ...msgs,
-          { role: "assistant", text: response.response, time: now },
+          { role: "assistant", text: response.answer, time: now },
         ]);
+        this.isLoading.set(false);
       },
-      error: (error) => {
-        console.error("Chatbot error:", error);
+      error: () => {
+        this.messages.update((msgs) => [
+          ...msgs,
+          { role: "assistant", text: "Sorry, I could not process your request. Please try again.", time: now },
+        ]);
+        this.isLoading.set(false);
       },
     });
     this.input = "";
   }
 
-    protected readonly BtnStylesEnum = BtnStylesEnum;
+  clearSession() {
+    if (this.sessionId) {
+      this.chatbotService.clearSession(this.sessionId).subscribe();
+    }
+    this.sessionId = null;
+    this.messages.set([]);
+  }
+
+  protected readonly BtnStylesEnum = BtnStylesEnum;
 }

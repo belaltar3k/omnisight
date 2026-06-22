@@ -87,6 +87,18 @@ export class Incident {
   @Column({ name: 'ai_metadata', type: 'jsonb', nullable: true })
   aiMetadata!: { keypoints?: any[]; boundingBoxes?: any[]; raw?: any };
 
+  @Column({ name: 'vlm_verification', type: 'jsonb', nullable: true })
+  vlmVerification!: {
+    status: 'pending' | 'completed' | 'failed';
+    verifiedCrimeType?: string;
+    caption?: string;
+    anomalyScoreVlm?: string;
+    observedEvents?: string[];
+    anomalyEvidence?: string[];
+    peopleCount?: number;
+    completedAt?: string;
+  } | null;
+
   @Column({ name: 'assigned_to', nullable: true })
   assignedTo!: string;
 

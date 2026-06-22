@@ -29,6 +29,8 @@ class WeightedFusionEngine:
         processing_time: float = 0.0,
         failed_components: dict[str, str] | None = None,
         disabled_components: list[str] | None = None,
+        audio_boost_scores: np.ndarray | None = None,
+        audio_boost_strength: float = 0.65,
     ) -> PipelineResult:
         active_weights = self._renormalize_weights(set(results.keys()))
 
@@ -70,6 +72,10 @@ class WeightedFusionEngine:
 
         fused = self._smooth(fused).astype(np.float32)
         fused = np.clip(fused, 0.0, 1.0)
+
+        if audio_boost_scores is not None and audio_boost_strength > 0:
+            aligned_audio = self._align_scores(audio_boost_scores, num_frames).astype(np.float32)
+            fused = np.clip(fused + aligned_audio * audio_boost_strength, 0.0, 1.0)
 
         anomaly_mask = fused >= self.anomaly_threshold
         anomaly_regions = self._extract_anomaly_regions(fused, anomaly_mask, fps)

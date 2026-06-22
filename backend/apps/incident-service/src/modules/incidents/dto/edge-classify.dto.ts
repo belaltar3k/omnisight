@@ -1,4 +1,4 @@
-import { IsEnum, IsNotEmpty, IsNumber, IsString, Max, Min } from 'class-validator';
+import { IsEnum, IsNotEmpty, IsNumber, IsObject, IsOptional, IsString, Max, Min } from 'class-validator';
 import { CrimeType } from '../../entities/incident.entity';
 
 export class EdgeClassifyDto {
@@ -13,4 +13,21 @@ export class EdgeClassifyDto {
   @Min(0)
   @Max(1)
   confidence!: number;
+
+  @IsOptional()
+  @IsString()
+  videoUrl?: string;
+
+  @IsOptional()
+  @IsObject()
+  vlmVerification?: {
+    status: 'completed';
+    verifiedCrimeType?: string;
+    caption?: string;
+    anomalyScoreVlm?: string;
+    observedEvents?: string[];
+    anomalyEvidence?: string[];
+    peopleCount?: number;
+    completedAt?: string;
+  };
 }

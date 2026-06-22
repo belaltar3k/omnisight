@@ -1,21 +1,24 @@
 <div class="h-full flex flex-col bg-panel rounded-sm overflow-hidden">
   <div class="flex items-center justify-between px-3 py-2.5 border-b border-border-subtle shrink-0">
-    <span class="text-xs font-semibold text-white">Device List</span>
-    <div class="flex items-center gap-2 text-text-secondary">
-      <app-button message="" icon="sliders" type="button"></app-button>
-      <app-button message="" icon="magnifying-glass" type="button"></app-button>
-    </div>
+    <span class="text-xs font-semibold text-white">Cameras</span>
   </div>
   <div class="flex-1 overflow-y-auto">
-    @for (device of devices; track device.name) {
-      <div class="flex items-center gap-2 px-3 py-2 border-b border-border-subtle hover:bg-border-subtle cursor-pointer transition-colors">
+    @for (cam of (cameras$ | async); track cam.id) {
+      <a [routerLink]="['/cameras']"
+         class="flex items-center gap-2 px-3 py-2 border-b border-border-subtle hover:bg-border-subtle cursor-pointer transition-colors">
         <div class="w-5 h-5 rounded-full bg-border-subtle border border-border-accent flex items-center justify-center shrink-0">
-          <div class="w-2.5 h-2.5 rounded-full bg-emerald-500"></div>
+          <div class="w-2.5 h-2.5 rounded-full"
+               [class]="cam.status === 'online' ? 'bg-emerald-500' : cam.status === 'maintenance' ? 'bg-yellow-500' : 'bg-red-500'">
+          </div>
         </div>
         <div class="flex-1 min-w-0">
-          <p class="text-[11px] font-medium text-white truncate">{{ device.name }}</p>
-          <p class="text-[10px] text-text-muted truncate">{{ device.location }}</p>
+          <p class="text-[11px] font-medium text-white truncate">{{ cam.name }}</p>
+          <p class="text-[10px] text-text-muted truncate font-mono">{{ cam.code }}</p>
         </div>
+      </a>
+    } @empty {
+      <div class="flex items-center justify-center h-full py-8">
+        <p class="text-xs text-text-muted">No cameras registered</p>
       </div>
     }
   </div>

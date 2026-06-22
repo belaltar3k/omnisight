@@ -12,12 +12,16 @@ export interface IIncidentActor {
 
 export interface IVlmVerification {
   status: 'pending' | 'completed' | 'failed' | 'not_requested';
-  verifiedCrimeType?: CrimeType;
+  verifiedCrimeType?: string;
   vlmConfidence?: number;
   isFalsePositive?: boolean;
   caption?: string;
   completedAt?: string;
   latencyMs?: number;
+  anomalyScoreVlm?: string;
+  observedEvents?: string[];
+  anomalyEvidence?: string[];
+  peopleCount?: number;
 }
 
 export interface IFusionScores {
@@ -66,10 +70,12 @@ export interface IIncidentTimelineEvent {
 }
 
 export interface IIncident {
-  incidentId: string;
+  id: string;
   cameraId: string;
+  cameraCode?: string;
   zoneId: string;
-  detectedBy: string;
+  edgeNodeId?: string;
+  trackId?: string;
   crimeType: CrimeType;
   confidence: number;
   detectedAt: string;
@@ -87,13 +93,19 @@ export interface IIncident {
   poseAction?: string;
   aiMetadata?: Record<string, unknown>;
   vlmVerification?: IVlmVerification;
-  videoUrl?: string;
-  thumbnailUrl?: string;
-  assignedTo?: string;
-  resolvedAt?: string;
-  resolvedBy?: string;
-  resolutionNotes?: string;
+  videoUrl?: string | null;
+  thumbnailUrl?: string | null;
+  assignedTo?: string | null;
+  assignedAt?: string | null;
+  acknowledgedBy?: string | null;
+  acknowledgedAt?: string | null;
+  resolvedAt?: string | null;
+  resolvedBy?: string | null;
+  resolutionNotes?: string | null;
   isFalsePositive?: boolean;
-  falsePositiveReason?: string;
+  falsePositiveReason?: string | null;
+  deletedAt?: string | null;
+  createdAt?: string;
+  updatedAt?: string;
   actors?: IIncidentActor[];
 }

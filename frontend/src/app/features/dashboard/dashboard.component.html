@@ -8,7 +8,15 @@
       <app-event-details />
     </div>
     <div class="flex-1 min-w-0">
-      <app-camera-feed label="Parking Garage 1"  imageType="parking" [showControls]="true" />
+      @if ((cameras$ | async); as cameras) {
+        @if (cameras.length > 0) {
+          <app-camera-feed [label]="cameras[0].name" [cameraCode]="cameras[0].code" [showControls]="true" />
+        } @else {
+          <app-camera-feed label="Main Feed" [showControls]="true" />
+        }
+      } @else {
+        <app-camera-feed label="Main Feed" [showControls]="true" />
+      }
     </div>
   </div>
   <!-- Bottom row -->
@@ -17,10 +25,17 @@
       <app-events-list />
     </div>
     <div class="flex-1 grid grid-cols-2 grid-rows-2 gap-[3px] min-w-0">
-      <app-camera-feed label="Checkin Area"      imageType="checkin"  [showClose]="true" />
-      <app-camera-feed label="Server Room A2"    imageType="server"   [showLivePercent]="true" />
-      <app-camera-feed label="Office Space 201"  imageType="office" />
-      <app-camera-feed label="Terminal C"        imageType="terminal" />
+      @if ((cameras$ | async); as cameras) {
+        <app-camera-feed [label]="cameras[1]?.name ?? 'Camera 2'" [cameraCode]="cameras[1]?.code ?? null" />
+        <app-camera-feed [label]="cameras[2]?.name ?? 'Camera 3'" [cameraCode]="cameras[2]?.code ?? null" />
+        <app-camera-feed [label]="cameras[3]?.name ?? 'Camera 4'" [cameraCode]="cameras[3]?.code ?? null" />
+        <app-camera-feed [label]="cameras[4]?.name ?? 'Camera 5'" [cameraCode]="cameras[4]?.code ?? null" />
+      } @else {
+        <app-camera-feed label="Camera 2" />
+        <app-camera-feed label="Camera 3" />
+        <app-camera-feed label="Camera 4" />
+        <app-camera-feed label="Camera 5" />
+      }
     </div>
   </div>
 </div>

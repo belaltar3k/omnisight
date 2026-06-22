@@ -8,13 +8,13 @@
       <span>›</span>
       <a routerLink="/incidents" class="hover:text-white transition-colors">Incidents</a>
       <span>›</span>
-      <span class="text-white font-mono">{{ inc.incidentId }}</span>
+      <span class="text-white font-mono">{{ inc.id }}</span>
     </div>
 
     <!-- Header -->
     <div class="flex items-start justify-between gap-4">
       <div>
-        <h1 class="text-xl font-bold text-white font-mono">{{ inc.incidentId }}</h1>
+        <h1 class="text-xl font-bold text-white font-mono">{{ inc.id }}</h1>
         <div class="flex items-center gap-2 mt-2 flex-wrap">
           <app-status-badge [status]="inc.status" />
           <app-priority-badge [priority]="inc.priority" />
@@ -65,24 +65,65 @@
               }
             </div>
 
-            <!-- VLM output -->
+            <!-- VLM / AI output -->
             <div>
-              <p class="text-[10px] text-text-muted uppercase tracking-widest mb-2">VLM Output</p>
+              <p class="text-[10px] text-text-muted uppercase tracking-widest mb-2">AI Analysis</p>
               @if (inc.vlmVerification; as vlm) {
-                <p class="text-xs text-text-secondary leading-relaxed bg-surface-well border border-border-subtle rounded p-2">
-                  {{ vlm.caption ?? 'No caption generated.' }}
-                </p>
-                @if (vlm.status === 'completed' && !vlm.isFalsePositive) {
-                  <p class="text-[10px] text-emerald-400 mt-2">
-                    ✓ Verified {{ vlm.verifiedCrimeType }} ({{ vlm.vlmConfidence | number:'1.2-2' }})
+                @if (vlm.caption) {
+                  <p class="text-xs text-text-secondary leading-relaxed bg-surface-well border border-border-subtle rounded p-2 mb-2">
+                    {{ vlm.caption }}
                   </p>
-                } @else if (vlm.isFalsePositive) {
-                  <p class="text-[10px] text-yellow-400 mt-2">⚠ False positive detected</p>
-                } @else {
-                  <p class="text-[10px] text-text-muted mt-2">Status: {{ vlm.status }}</p>
+                }
+                <div class="space-y-1 text-xs">
+                  <div class="flex justify-between border-b border-border-subtle py-1">
+                    <span class="text-text-muted">Crime type</span>
+                    <span class="text-white capitalize">{{ vlm.verifiedCrimeType }}</span>
+                  </div>
+                  @if (vlm.anomalyScoreVlm) {
+                    <div class="flex justify-between border-b border-border-subtle py-1">
+                      <span class="text-text-muted">Severity</span>
+                      <span [class]="vlm.anomalyScoreVlm === 'HIGH' ? 'text-red-400' : vlm.anomalyScoreVlm === 'MEDIUM' ? 'text-yellow-400' : 'text-blue-400'">
+                        {{ vlm.anomalyScoreVlm }}
+                      </span>
+                    </div>
+                  }
+                  @if (vlm.peopleCount != null) {
+                    <div class="flex justify-between border-b border-border-subtle py-1">
+                      <span class="text-text-muted">People detected</span>
+                      <span class="text-white">{{ vlm.peopleCount }}</span>
+                    </div>
+                  }
+                </div>
+                @if (vlm.anomalyEvidence?.length) {
+                  <div class="mt-2">
+                    <p class="text-[10px] text-text-muted uppercase tracking-widest mb-1">Evidence</p>
+                    @for (e of vlm.anomalyEvidence; track $index) {
+                      <p class="text-[11px] text-text-secondary">• {{ e }}</p>
+                    }
+                  </div>
+                }
+                @if (vlm.completedAt) {
+                  <p class="text-[10px] text-emerald-400 mt-2">✓ Analyzed at {{ vlm.completedAt | date:'shortTime' }}</p>
                 }
               } @else {
-                <p class="text-xs text-text-muted">No VLM data</p>
+                <!-- Show raw AI metadata when VLM hasn't run -->
+                <div class="space-y-1.5">
+                  @if (fusedPeak(inc); as peak) {
+                    <div class="flex justify-between text-xs border-b border-border-subtle py-1">
+                      <span class="text-text-muted">Fused score</span>
+                      <span class="text-white font-mono">{{ peak | number:'1.3-3' }}</span>
+                    </div>
+                  }
+                  <div class="flex justify-between text-xs border-b border-border-subtle py-1">
+                    <span class="text-text-muted">Confidence</span>
+                    <span class="text-white font-mono">{{ inc.confidence * 100 | number:'1.0-0' }}%</span>
+                  </div>
+                  <div class="flex justify-between text-xs border-b border-border-subtle py-1">
+                    <span class="text-text-muted">Model</span>
+                    <span class="text-text-secondary text-[10px]">{{ inc.modelVersion ?? '—' }}</span>
+                  </div>
+                  <p class="text-[10px] text-text-muted pt-1">VLM analysis pending</p>
+                </div>
               }
             </div>
           </div>
@@ -106,7 +147,7 @@
             </div>
             <div class="flex justify-between border-b border-border-subtle py-1.5">
               <span class="text-text-muted">Detected by</span>
-              <span class="text-text-secondary">{{ inc.detectedBy }}</span>
+              <span class="text-text-secondary">{{ inc.modelVersion }}</span>
             </div>
             @if (inc.assignedTo) {
               <div class="flex justify-between border-b border-border-subtle py-1.5">

@@ -1,7 +1,7 @@
 {
   "info": {
     "name": "Sentinel Backend API",
-    "description": "Complete API collection — all routes go through the API Gateway on port 3000.\n\nFlow:\n1. Register or Login → token is auto-saved to {{token}}\n2. Use any protected route — Bearer token is added automatically via collection auth\n3. Edge routes use {{edgeSecret}} header instead of JWT",
+    "description": "Complete API collection \u2014 all routes go through the API Gateway on port 3000.\n\nFlow:\n1. Register or Login \u2192 token is auto-saved to {{token}}\n2. Use any protected route \u2014 Bearer token is added automatically via collection auth\n3. Edge routes use {{edgeSecret}} header instead of JWT",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "auth": {
@@ -147,7 +147,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"email\": \"admin@sentinel.com\",\n  \"password\": \"Admin123!\"\n}"
+              "raw": "{\n  \"identifier\": \"admin@sentinel.com\",\n  \"password\": \"Admin123!\"\n}"
             },
             "url": {
               "raw": "{{baseUrl}}/api/v1/auth/login",
@@ -522,6 +522,37 @@
           }
         },
         {
+          "name": "Get Edge Node by Code",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/edge-nodes/by-code/{{edgeNodeCode}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "edge-nodes",
+                "by-code",
+                "{{edgeNodeCode}}"
+              ]
+            },
+            "description": "Lookup edge node by its code string (used internally by AI detection)"
+          },
+          "response": []
+        },
+        {
           "name": "Update Edge Node",
           "request": {
             "method": "PATCH",
@@ -646,6 +677,37 @@
               ]
             }
           }
+        },
+        {
+          "name": "Get Camera by Code",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/cameras/by-code/{{cameraCode}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "cameras",
+                "by-code",
+                "{{cameraCode}}"
+              ]
+            },
+            "description": "Lookup camera by its code string (used internally by AI detection)"
+          },
+          "response": []
         },
         {
           "name": "Get Cameras by Edge Node",
@@ -1365,6 +1427,37 @@
               ]
             }
           }
+        },
+        {
+          "name": "Delete Profile",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/profiles/auth/{{userId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "profiles",
+                "auth",
+                "{{userId}}"
+              ]
+            },
+            "description": "Delete a user profile by auth user ID (Admin only)"
+          },
+          "response": []
         }
       ]
     },
@@ -1616,7 +1709,7 @@
     },
     {
       "name": "Analytics",
-      "description": "Analytics service endpoints — dashboard, incident stats, trends, response times, camera performance, heatmap, and report generation. All proxied through the gateway.",
+      "description": "Analytics service endpoints \u2014 dashboard, incident stats, trends, response times, camera performance, heatmap, and report generation. All proxied through the gateway.",
       "item": [
         {
           "name": "Dashboard",
@@ -2032,12 +2125,291 @@
               }
             }
           ]
+        },
+        {
+          "name": "Chatbot",
+          "item": [
+            {
+              "name": "Send Chat Message",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/analytics/chatbot/chat",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "analytics",
+                    "chatbot",
+                    "chat"
+                  ]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"message\": \"How many incidents happened in the last 24 hours?\",\n  \"session_id\": \"{{sessionId}}\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "description": "Send a message to the AI chatbot. Omit session_id to start a new session."
+              },
+              "response": []
+            },
+            {
+              "name": "Get Chat Session History",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/analytics/chatbot/sessions/{{sessionId}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "analytics",
+                    "chatbot",
+                    "sessions",
+                    "{{sessionId}}"
+                  ]
+                },
+                "description": "Return full conversation history for a chatbot session."
+              },
+              "response": []
+            },
+            {
+              "name": "Clear Chat Session",
+              "request": {
+                "method": "DELETE",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/analytics/chatbot/sessions/{{sessionId}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "analytics",
+                    "chatbot",
+                    "sessions",
+                    "{{sessionId}}"
+                  ]
+                },
+                "description": "Clear all messages in a chatbot session."
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "VLM Analysis",
+          "item": [
+            {
+              "name": "Ingest VLM Analysis",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/analytics/vlm/ingest",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "analytics",
+                    "vlm",
+                    "ingest"
+                  ]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"track_id\": \"track-001\",\n  \"camera_id\": \"cam-001\",\n  \"zone\": \"Zone A\",\n  \"crime_type\": \"abnormal\",\n  \"vlm_score\": \"HIGH\",\n  \"people_count\": 2,\n  \"caption\": \"Two individuals engaged in suspicious activity near entrance\",\n  \"events\": [\n    \"running\",\n    \"shouting\"\n  ],\n  \"evidence\": [\n    \"bounding_box_001.jpg\"\n  ],\n  \"video_url\": \"\",\n  \"full_json\": {}\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "description": "Store a VLM (Visual Language Model) analysis result from the AI pipeline."
+              },
+              "response": []
+            },
+            {
+              "name": "List VLM Analyses",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/analytics/vlm/analyses?hours=24&limit=50",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "analytics",
+                    "vlm",
+                    "analyses"
+                  ],
+                  "query": [
+                    {
+                      "key": "camera_id",
+                      "value": "",
+                      "disabled": true
+                    },
+                    {
+                      "key": "zone",
+                      "value": "",
+                      "disabled": true
+                    },
+                    {
+                      "key": "crime_type",
+                      "value": "",
+                      "disabled": true
+                    },
+                    {
+                      "key": "hours",
+                      "value": "24"
+                    },
+                    {
+                      "key": "limit",
+                      "value": "50"
+                    }
+                  ]
+                },
+                "description": "Query VLM analysis records. Filter by camera, zone, crime type, and time window."
+              },
+              "response": []
+            },
+            {
+              "name": "Get VLM Analysis Detail",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/analytics/vlm/analyses/{{analysisId}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "analytics",
+                    "vlm",
+                    "analyses",
+                    "{{analysisId}}"
+                  ]
+                },
+                "description": "Get full detail of a single VLM analysis including raw model output."
+              },
+              "response": []
+            },
+            {
+              "name": "Get VLM Summary",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/analytics/vlm/summary?hours=24",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "analytics",
+                    "vlm",
+                    "summary"
+                  ],
+                  "query": [
+                    {
+                      "key": "hours",
+                      "value": "24"
+                    }
+                  ]
+                },
+                "description": "Aggregate counts by crime type and recent captions \u2014 useful for dashboard."
+              },
+              "response": []
+            }
+          ]
         }
       ]
     },
     {
       "name": "Health",
-      "description": "Gateway health check — does not require authentication",
+      "description": "Gateway health check \u2014 does not require authentication",
       "item": [
         {
           "name": "Gateway Health Check",
@@ -2061,7 +2433,7 @@
     },
     {
       "name": "AI Detection Service (Direct)",
-      "description": "ai-detection FastAPI service on port 8010 — accessed directly, no auth required. Runs per-camera micro-batch inference (SkelNet, WeaponDetector, SurveillanceAnalytics) and pushes incidents to the backend. Stream and snapshot endpoints serve annotated MJPEG/JPEG frames with detection overlays.",
+      "description": "ai-detection FastAPI service on port 8010 \u2014 accessed directly, no auth required. Runs per-camera micro-batch inference (SkelNet, WeaponDetector, SurveillanceAnalytics) and pushes incidents to the backend. Stream and snapshot endpoints serve annotated MJPEG/JPEG frames with detection overlays.",
       "item": [
         {
           "name": "Health",
@@ -2198,7 +2570,7 @@
                 }
               ]
             },
-            "description": "multipart/x-mixed-replace MJPEG stream — annotated frames from the completed micro-batch replay queue with fusion score bar, component scores, bounding boxes, and anomaly border. Open in browser or VLC. Replace cam-001 with the actual camera_id."
+            "description": "multipart/x-mixed-replace MJPEG stream \u2014 annotated frames from the completed micro-batch replay queue with fusion score bar, component scores, bounding boxes, and anomaly border. Open in browser or VLC. Replace cam-001 with the actual camera_id."
           }
         },
         {
@@ -2228,7 +2600,7 @@
       "description": "Edge-tier services accessed directly (not through the gateway). These expose Prometheus metrics endpoints for monitoring.",
       "item": [
         {
-          "name": "Monitoring Agent — Prometheus Metrics",
+          "name": "Monitoring Agent \u2014 Prometheus Metrics",
           "request": {
             "auth": {
               "type": "noauth"
@@ -2243,11 +2615,11 @@
                 "metrics"
               ]
             },
-            "description": "Custom Prometheus exporter — exposes CPU, memory, disk, GPU, camera status, detection FPS, and detection latency metrics."
+            "description": "Custom Prometheus exporter \u2014 exposes CPU, memory, disk, GPU, camera status, detection FPS, and detection latency metrics."
           }
         },
         {
-          "name": "Video Ingestion — Prometheus Metrics",
+          "name": "Video Ingestion \u2014 Prometheus Metrics",
           "request": {
             "auth": {
               "type": "noauth"
@@ -2262,11 +2634,11 @@
                 "metrics"
               ]
             },
-            "description": "Video ingestion Prometheus metrics — camera_online, camera_fps, camera_frame_drops, camera_bitrate_kbps per camera."
+            "description": "Video ingestion Prometheus metrics \u2014 camera_online, camera_fps, camera_frame_drops, camera_bitrate_kbps per camera."
           }
         },
         {
-          "name": "Node Exporter — Prometheus Metrics",
+          "name": "Node Exporter \u2014 Prometheus Metrics",
           "request": {
             "auth": {
               "type": "noauth"
@@ -2281,7 +2653,7 @@
                 "metrics"
               ]
             },
-            "description": "Standard Prometheus node-exporter — host-level system metrics."
+            "description": "Standard Prometheus node-exporter \u2014 host-level system metrics."
           }
         }
       ]
