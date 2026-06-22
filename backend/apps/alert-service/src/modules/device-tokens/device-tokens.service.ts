@@ -51,4 +51,8 @@ export class DeviceTokensService {
     if (userIds.length === 0) return [];
     return this.repo.find({ where: { userId: In(userIds) } });
   }
+
+  async findAll(): Promise<DeviceToken[]> {
+    return this.repo.find();
+  }
 }

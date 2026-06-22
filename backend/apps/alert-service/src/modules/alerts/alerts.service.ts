@@ -75,10 +75,16 @@ export class AlertsService implements OnModuleInit {
   async handleIncidentNew(event: IncidentNewEvent) {
     this.logger.log(`New incident event: ${JSON.stringify(event)}`);
 
-    const tokens = await this.getZoneUserTokens(event.zoneId);
+    let tokens = await this.getZoneUserTokens(event.zoneId);
+
+    // Fallback: if no zone-assigned users have tokens, broadcast to every registered device
+    if (tokens.length === 0) {
+      this.logger.warn(`No device tokens for zone ${event.zoneId} — falling back to all registered devices`);
+      tokens = await this.deviceTokensService.findAll();
+    }
 
     if (tokens.length === 0) {
-      this.logger.warn(`No device tokens for zone ${event.zoneId} — skipping push`);
+      this.logger.warn(`No device tokens registered anywhere — skipping push`);
       return;
     }
 
